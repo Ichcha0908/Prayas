@@ -233,6 +233,128 @@ function realWeatherOn(iso: ISODate): WeatherObs | undefined {
   return REAL_WEATHER.get(iso);
 }
 
+/**
+ * Real forecast weather for Saket, Delhi NCR, fetched live from Open-Meteo's
+ * forecast API (free, no key, CORS-enabled for browser use) — the same
+ * provider as the historical archive above, but its forward-looking endpoint
+ * instead of its reanalysis archive. Unlike history, a forecast snapshot goes
+ * stale within days, so this cannot be a committed file: it is fetched once
+ * per browser session, cached in memory, and used as the baseline weather for
+ * every date it covers before the stress test's scenario scaling is applied.
+ *
+ * The free tier returns at most 16 days out. Only that near-term window gets
+ * real predicted weather; forecast days beyond it, and the calendar page's
+ * much longer 60-day forward view, correctly keep using the synthetic
+ * generator below — no provider forecasts weather 60 days out with real
+ * skill, so pretending otherwise would be worse than the honest synthetic
+ * fallback this already had.
+ *
+ * A fetch failure (offline, the API down, a CORS/network hiccup) is caught
+ * and logged, never thrown — the app already handles a missing lookup here
+ * by falling back to the synthetic generator, exactly as it does for the
+ * historical archive's own coverage gaps.
+ */
+const LIVE_FORECAST_LATITUDE = 28.5245;
+const LIVE_FORECAST_LONGITUDE = 77.2065;
+const LIVE_FORECAST_DAYS = 16;
+
+let LIVE_FORECAST_WEATHER: Map<ISODate, WeatherObs> | null = null;
+let liveForecastLoadPromise: Promise<void> | null = null;
+
+interface OpenMeteoForecastResponse {
+  daily?: {
+    time: string[];
+    weathercode: number[];
+    temperature_2m_max: number[];
+    temperature_2m_min: number[];
+    precipitation_sum: number[];
+  };
+}
+
+/**
+ * Maps a WMO weather code + measured/predicted rainfall onto the app's
+ * WeatherCode enum. This mirrors scripts/fetch-weather.mjs's mapWeatherCode
+ * exactly (same thresholds, same thunderstorm-code override) — that script
+ * runs in Node at fetch time for the historical archive, this runs in the
+ * browser at request time for the live forecast, so the logic is duplicated
+ * rather than shared across that Node-script/browser-bundle boundary. Keep
+ * the two in sync if either changes.
+ */
+function mapWmoWeatherCode(wmoCode: number, rainfallMm: number): WeatherCode {
+  const isThunderstorm = wmoCode === 95 || wmoCode === 96 || wmoCode === 99;
+  if (isThunderstorm || rainfallMm >= 38) return 'storm';
+  if (rainfallMm >= 20) return 'heavy_rain';
+  if (rainfallMm >= 3) return 'rain';
+  if (wmoCode === 0) return 'clear';
+  if (wmoCode === 1 || wmoCode === 2) return 'partly_cloudy';
+  return 'cloudy';
+}
+
+async function fetchLiveForecastWeather(): Promise<Map<ISODate, WeatherObs>> {
+  const url =
+    `https://api.open-meteo.com/v1/forecast?latitude=${LIVE_FORECAST_LATITUDE}&longitude=${LIVE_FORECAST_LONGITUDE}` +
+    `&daily=weathercode,temperature_2m_max,temperature_2m_min,precipitation_sum` +
+    `&forecast_days=${LIVE_FORECAST_DAYS}&timezone=Asia%2FKolkata`;
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 6000);
+  let res: Response;
+  try {
+    res = await fetch(url, { signal: controller.signal });
+  } finally {
+    clearTimeout(timeout);
+  }
+  if (!res.ok) throw new Error(`Open-Meteo forecast request failed: ${res.status}`);
+
+  const body = (await res.json()) as OpenMeteoForecastResponse;
+  const daily = body.daily;
+  if (!daily?.time?.length) throw new Error('Open-Meteo forecast response had no daily data');
+
+  const map = new Map<ISODate, WeatherObs>();
+  for (let i = 0; i < daily.time.length; i += 1) {
+    const rainfallMm = Math.round((daily.precipitation_sum[i] ?? 0) * 10) / 10;
+    const code = mapWmoWeatherCode(daily.weathercode[i], rainfallMm);
+    const tMax = daily.temperature_2m_max[i];
+    const tMin = daily.temperature_2m_min[i];
+    map.set(daily.time[i], {
+      code,
+      label: weatherLabel(code),
+      rainfallMm,
+      tempC: Math.round((tMax + tMin) / 2),
+    });
+  }
+  return map;
+}
+
+/**
+ * Ensures the live forecast has been requested at most once per session.
+ * Concurrent callers (every page's forecast/cashflow/risk/resilience call all
+ * fire at once on navigation) share the same in-flight request rather than
+ * each triggering their own fetch. Safe to call unconditionally — it resolves
+ * even when the fetch failed, leaving LIVE_FORECAST_WEATHER as null so every
+ * lookup below falls back to the synthetic generator.
+ */
+export function loadLiveForecastWeather(): Promise<void> {
+  if (!liveForecastLoadPromise) {
+    liveForecastLoadPromise = fetchLiveForecastWeather()
+      .then((map) => {
+        LIVE_FORECAST_WEATHER = map;
+      })
+      .catch((err) => {
+        console.warn(
+          '[kamai] Live weather forecast unavailable, forecast days will use the synthetic weather generator instead:',
+          err,
+        );
+        LIVE_FORECAST_WEATHER = null;
+      });
+  }
+  return liveForecastLoadPromise;
+}
+
+function liveWeatherOn(iso: ISODate): WeatherObs | undefined {
+  return LIVE_FORECAST_WEATHER?.get(iso);
+}
+
 function generateWeather(date: Date, rng: () => number): WeatherObs {
   const month = date.getMonth();
   const wetness = monsoonIntensity(month);
@@ -771,8 +893,10 @@ export function forecastDays(
     const iso = toISO(date);
     const dow = date.getDay();
 
-    // Weather forecast — same generator, seeded forward from the anchor.
-    const raw = generateWeather(date, rng);
+    // Prefer the real Open-Meteo forecast for near-term days; the synthetic
+    // generator (seeded forward from the anchor) fills everything beyond its
+    // 16-day reach, and is the only source when the live fetch never loaded.
+    const raw = liveWeatherOn(iso) ?? generateWeather(date, rng);
     // A rainfall multiplier scales what is already forecast AND imposes a floor,
     // otherwise an extreme-rain scenario over a dry week would change nothing.
     const mult = context.rainfallMultiplier;

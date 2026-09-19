@@ -21,7 +21,7 @@ import type {
   StressTestResponse,
   UserResponse,
 } from './types';
-import { NEUTRAL_CONTEXT, type ForecastContext } from './mock/engine';
+import { loadLiveForecastWeather, NEUTRAL_CONTEXT, type ForecastContext } from './mock/engine';
 import * as mock from './mock/handlers';
 
 export * from './types';
@@ -45,17 +45,28 @@ function contextFromScenarios(scenarios: ScenarioKey[] = []): ForecastContext {
   };
 }
 
+/**
+ * Runs the mock engine, after best-effort loading the live weather forecast
+ * it prefers for near-term days. Loading is memoized (see
+ * loadLiveForecastWeather), so this only actually fetches once per session
+ * regardless of how many endpoints call it.
+ */
+async function runFallback<T>(fallback: () => T): Promise<T> {
+  await loadLiveForecastWeather();
+  return fallback();
+}
+
 /** Runs the live call when possible, otherwise the local equivalent. */
 async function resolve<T>(live: () => Promise<T>, fallback: () => T): Promise<T> {
-  if (DATA_SOURCE === 'mock') return fallback();
+  if (DATA_SOURCE === 'mock') return runFallback(fallback);
   const available = await isLiveBackendAvailable();
-  if (!available) return fallback();
+  if (!available) return runFallback(fallback);
   try {
     return await live();
   } catch (err) {
     // In 'live' mode a failure is a real failure and must surface to the UI.
     if (DATA_SOURCE === 'live') throw err;
-    return fallback();
+    return runFallback(fallback);
   }
 }
 

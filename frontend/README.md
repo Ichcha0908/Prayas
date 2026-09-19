@@ -91,6 +91,20 @@ statement about actual Delhi monsoon rainfall on actual dates, not synthetic
 noise — check `/app/calendar`, select a day in September, and the rainfall
 figure shown is what actually fell that day.
 
+**The forward-looking forecast is live, not just history.** The `/app/forecast`
+and `/app/cashflow` pages used to fall straight to synthetic weather for every
+future day, even after history became real. They no longer do:
+`loadLiveForecastWeather()` in `engine.ts` fetches Open-Meteo's forecast
+endpoint (same free, no-key, CORS-enabled provider, its forward-looking API
+instead of the ERA5 archive) once per browser session and feeds the next 16
+days of real predicted weather into every forecast day it covers. A forecast
+snapshot goes stale within days, so unlike history this is **not** a committed
+file — it's fetched live, memoized so six pages sharing the same navigation
+trigger exactly one request, and falls back to the synthetic generator with a
+logged warning (never a thrown error) if the fetch fails. Days beyond 16 out,
+and the calendar's much longer 60-day view, correctly stay synthetic — no
+provider forecasts weather that far out with real skill.
+
 ## Real fuel price data
 
 `src/data/fuel-price-delhi.json` holds the real Delhi retail petrol and diesel

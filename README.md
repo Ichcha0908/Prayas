@@ -158,6 +158,19 @@ doesn't exist yet. Every income effect described above (rain reducing hours,
 the measured rain-day income gap in Insights) is therefore now computed
 against actual Delhi monsoon rainfall on actual dates, not invented noise.
 
+**Neither is the forward-looking forecast, as of the most recent change.**
+Historical weather became real first; the actual forecast pages
+(`/app/forecast`, `/app/cashflow`) kept using synthetic weather for future
+days even after that. `frontend/src/api/mock/engine.ts` now fetches
+Open-Meteo's live forecast endpoint — same free provider, its forward-looking
+API this time — once per browser session, and uses it for every day within
+its 16-day reach. Because a forecast snapshot goes stale within days, this
+can't be a committed file the way history is: it's fetched live, memoized so
+navigating between pages doesn't refetch, and falls back to the synthetic
+generator (logged, never thrown) if the network call fails. Verified by
+deliberately blocking the request in a real browser — the app kept rendering
+correctly throughout.
+
 **Fuel price is also not synthetic.** `frontend/src/data/fuel-price-delhi.json`
 is the real Delhi retail petrol price — ₹102.12/litre — from
 [PPAC](https://ppac.gov.in) (Petroleum Planning & Analysis Cell, Ministry of
