@@ -47,6 +47,8 @@ BACKEND_ORIGIN=http://localhost:9000 npm run dev
 | `src/api/client.ts` | fetch wrapper: base URL, timeouts, `ApiError` |
 | `src/api/index.ts` | Live/mock resolution — the swap point |
 | `src/api/mock/engine.ts` | Synthetic data + the forecasting model |
+| `src/data/weather-delhi-ncr.json` | Real historical weather (see below) |
+| `scripts/fetch-weather.mjs` | Refreshes the real weather file |
 | `src/api/mock/handlers.ts` | Reference implementation of all 9 endpoints |
 | `src/hooks/useAppData.tsx` | App-wide data + the scenario overlay |
 | `src/components/charts/` | Recharts components |
@@ -65,3 +67,24 @@ BACKEND_ORIGIN=http://localhost:9000 npm run dev
   Every chart ships a legend and a corresponding data table.
 - Grids that only set `lg:grid-cols-*` must also set `grid-cols-1`, or the
   single mobile column is `auto`-sized and overflows the viewport.
+
+## Real weather data
+
+Historical weather is not synthetic. `src/data/weather-delhi-ncr.json` is real
+daily rainfall and temperature for South Delhi — Saket, fetched from
+[Open-Meteo's ERA5 reanalysis archive](https://open-meteo.com/en/docs/historical-weather-api)
+(free, no API key, CC BY 4.0). `engine.ts` looks up this file by date for every
+day in the driver's history; only the forward-looking forecast window (where
+real future weather doesn't exist yet) uses the synthetic generator.
+
+A snapshot is committed to the repo, so the app works with zero setup. To
+extend coverage as time passes:
+
+```bash
+npm run fetch:weather
+```
+
+This is what makes a claim like *"your heavy-rain days earned 19% less"* a
+statement about actual Delhi monsoon rainfall on actual dates, not synthetic
+noise — check `/app/calendar`, select a day in September, and the rainfall
+figure shown is what actually fell that day.

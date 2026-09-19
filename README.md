@@ -147,6 +147,18 @@ Diwali days, exactly the way a real model would measure it. The injected
 constant is 31%; the measured one is 24%, and they differ because of noise,
 sample size and weekday matching. That gap is the point.
 
+**Weather is the one input that is not synthetic.** `frontend/src/data/
+weather-delhi-ncr.json` is real daily rainfall and temperature for South Delhi
+— Saket, pulled from
+[Open-Meteo's ERA5 reanalysis archive](https://open-meteo.com/en/docs/historical-weather-api)
+(free, no key, CC BY 4.0) by `scripts/fetch-weather.mjs`. The engine looks this
+up by date for every historical day; a committed snapshot means the app needs
+no setup, and `npm run fetch:weather` refreshes it. Only the forward-looking
+forecast window still uses synthetic weather, since real future weather
+doesn't exist yet. Every income effect described above (rain reducing hours,
+the measured rain-day income gap in Insights) is therefore now computed
+against actual Delhi monsoon rainfall on actual dates, not invented noise.
+
 ### Forecast model
 
 A three-layer hybrid, structured to mirror what the Python model will do:
@@ -257,7 +269,7 @@ synthetic test data"*.
 **Known limitations**
 
 - All data is synthetic. Nothing here has been validated against real earnings.
-- Weather is generated, not fetched from a forecast provider.
+- Historical weather is real (Open-Meteo ERA5); the forward-looking forecast window still uses a synthetic generator, since no forecast-weather provider is wired in yet.
 - Festival dates are approximate and cover 2025–2027 only.
 - Relationships (rain, festivals, weekdays) are measured from one synthetic
   driver's history and must not be read as general claims about delivery work.

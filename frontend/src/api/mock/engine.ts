@@ -18,6 +18,7 @@
  */
 
 import type { ISODate, WeatherCode } from '../types';
+import realWeatherFile from '../../data/weather-delhi-ncr.json';
 
 /* -------------------------------------------------------------- primitives */
 
@@ -204,6 +205,32 @@ export function weatherLabel(code: WeatherCode): string {
   }
 }
 
+/**
+ * Real historical weather for Delhi NCR (South Delhi — Saket), fetched from
+ * Open-Meteo's ERA5 reanalysis archive by scripts/fetch-weather.mjs. Days not
+ * covered by the file (the fetch script's lag window, and always the
+ * forward-looking forecast horizon, since real future weather doesn't exist
+ * yet) fall back to the synthetic generator below.
+ *
+ * This is what makes statements like "your heavy-rain days earned 21% less"
+ * measured against real rainfall on real dates rather than synthetic noise —
+ * re-run `npm run fetch:weather` periodically to extend coverage.
+ */
+interface RealWeatherFile {
+  days: Record<string, { code: WeatherCode; rainfallMm: number; tempC: number }>;
+}
+
+const REAL_WEATHER: ReadonlyMap<ISODate, WeatherObs> = new Map(
+  Object.entries((realWeatherFile as RealWeatherFile).days).map(([date, d]) => [
+    date,
+    { code: d.code, label: weatherLabel(d.code), rainfallMm: d.rainfallMm, tempC: d.tempC },
+  ]),
+);
+
+function realWeatherOn(iso: ISODate): WeatherObs | undefined {
+  return REAL_WEATHER.get(iso);
+}
+
 function generateWeather(date: Date, rng: () => number): WeatherObs {
   const month = date.getMonth();
   const wetness = monsoonIntensity(month);
@@ -363,7 +390,7 @@ export function buildHistory(spec: DriverSpec, anchor: Date = today()): DailyRec
     const date = addDays(anchor, -i);
     const iso = toISO(date);
     const dow = date.getDay();
-    const weather = generateWeather(date, rng);
+    const weather = realWeatherOn(iso) ?? generateWeather(date, rng);
     const hit = festivalOn(iso);
 
     // Rest day: usually the driver's regular rest day, occasionally shifted.
