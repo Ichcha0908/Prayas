@@ -147,9 +147,8 @@ Diwali days, exactly the way a real model would measure it. The injected
 constant is 31%; the measured one is 24%, and they differ because of noise,
 sample size and weekday matching. That gap is the point.
 
-**Weather is the one input that is not synthetic.** `frontend/src/data/
-weather-delhi-ncr.json` is real daily rainfall and temperature for South Delhi
-— Saket, pulled from
+**Weather is not synthetic.** `frontend/src/data/weather-delhi-ncr.json` is
+real daily rainfall and temperature for South Delhi — Saket, pulled from
 [Open-Meteo's ERA5 reanalysis archive](https://open-meteo.com/en/docs/historical-weather-api)
 (free, no key, CC BY 4.0) by `scripts/fetch-weather.mjs`. The engine looks this
 up by date for every historical day; a committed snapshot means the app needs
@@ -158,6 +157,18 @@ forecast window still uses synthetic weather, since real future weather
 doesn't exist yet. Every income effect described above (rain reducing hours,
 the measured rain-day income gap in Insights) is therefore now computed
 against actual Delhi monsoon rainfall on actual dates, not invented noise.
+
+**Fuel price is also not synthetic.** `frontend/src/data/fuel-price-delhi.json`
+is the real Delhi retail petrol price — ₹102.12/litre — from
+[PPAC](https://ppac.gov.in) (Petroleum Planning & Analysis Cell, Ministry of
+Petroleum & Natural Gas), verified against its own daily bulletin as flat for
+at least 96 consecutive days. Each driver's daily fuel cost is derived from
+this real price via a documented mileage assumption rather than a guessed
+rupee figure, and the stress test's fuel-cost scenario states the real price
+directly rather than an abstract percentage. Unlike weather, this one has no
+automated refresh: PPAC publishes no API, only a same-day-dated PDF whose
+filename can't be predicted in advance, so the data file documents how to
+update it by hand instead of shipping a scraper that would silently break.
 
 ### Forecast model
 

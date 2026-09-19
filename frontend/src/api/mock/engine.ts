@@ -19,6 +19,7 @@
 
 import type { ISODate, WeatherCode } from '../types';
 import realWeatherFile from '../../data/weather-delhi-ncr.json';
+import realFuelPriceFile from '../../data/fuel-price-delhi.json';
 
 /* -------------------------------------------------------------- primitives */
 
@@ -297,6 +298,31 @@ export interface DriverSpec {
   };
 }
 
+/**
+ * Real Delhi retail petrol price, from PPAC (Ministry of Petroleum & Natural
+ * Gas) — see src/data/fuel-price-delhi.json for the source, bulletin and
+ * fetch date. Daily fuel cost is derived from this real price rather than
+ * guessed as a flat rupee figure, using two documented assumptions:
+ *
+ *   - CITY_KM_PER_LITRE: real-world stop-and-go delivery mileage for a
+ *     110-125cc two-wheeler, well below its highway-rated efficiency
+ *     (typically 45-50 km/l rated vs. ~35-40 km/l in dense city traffic).
+ *   - dailyDistanceKm: total distance covered in a working shift.
+ *
+ * Only Delhi pricing is available (PPAC's daily bulletin covers Delhi,
+ * Mumbai, Chennai and Kolkata), so it is used as the baseline for every
+ * synthetic driver regardless of city — a reasonable proxy given fuel
+ * pricing does not vary enormously across major Indian metros.
+ */
+export const REAL_PETROL_PRICE_PER_LITRE: number = (realFuelPriceFile as { petrol_price_per_litre: number })
+  .petrol_price_per_litre;
+
+const CITY_KM_PER_LITRE = 38;
+
+function estimateDailyFuelCost(dailyDistanceKm: number): number {
+  return Math.round((dailyDistanceKm / CITY_KM_PER_LITRE) * REAL_PETROL_PRICE_PER_LITRE);
+}
+
 /** Day-of-week shape. Fridays weak, weekends strong — matches the persona. */
 const DOW_SHAPE = [1.18, 1.03, 0.97, 0.93, 0.95, 0.82, 1.22]; // Sun..Sat
 
@@ -325,7 +351,8 @@ export function buildDriverSpec(driverId: string): DriverSpec {
         rent: 9000,
         emi: 4500,
         dailyFood: 350,
-        dailyFuel: 260,
+        // ~100km/day shift at real Delhi petrol pricing — see estimateDailyFuelCost above.
+        dailyFuel: estimateDailyFuelCost(100),
         utilities: 850,
         family: 1200,
         currentSavings: 4800,
@@ -349,7 +376,8 @@ export function buildDriverSpec(driverId: string): DriverSpec {
       rent: Math.round(6000 + rng() * 6000),
       emi: Math.round(2500 + rng() * 4000),
       dailyFood: Math.round(300 + rng() * 160),
-      dailyFuel: Math.round(200 + rng() * 140),
+      // Distance varies per driver; the price per litre does not.
+      dailyFuel: estimateDailyFuelCost(70 + rng() * 60),
       utilities: Math.round(600 + rng() * 700),
       family: Math.round(800 + rng() * 2200),
       currentSavings: Math.round(2000 + rng() * 9000),

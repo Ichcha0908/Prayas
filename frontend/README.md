@@ -49,6 +49,7 @@ BACKEND_ORIGIN=http://localhost:9000 npm run dev
 | `src/api/mock/engine.ts` | Synthetic data + the forecasting model |
 | `src/data/weather-delhi-ncr.json` | Real historical weather (see below) |
 | `scripts/fetch-weather.mjs` | Refreshes the real weather file |
+| `src/data/fuel-price-delhi.json` | Real petrol/diesel price (see below) |
 | `src/api/mock/handlers.ts` | Reference implementation of all 9 endpoints |
 | `src/hooks/useAppData.tsx` | App-wide data + the scenario overlay |
 | `src/components/charts/` | Recharts components |
@@ -88,3 +89,21 @@ This is what makes a claim like *"your heavy-rain days earned 19% less"* a
 statement about actual Delhi monsoon rainfall on actual dates, not synthetic
 noise — check `/app/calendar`, select a day in September, and the rainfall
 figure shown is what actually fell that day.
+
+## Real fuel price data
+
+`src/data/fuel-price-delhi.json` holds the real Delhi retail petrol and diesel
+price from [PPAC](https://ppac.gov.in) (Petroleum Planning & Analysis Cell,
+Ministry of Petroleum & Natural Gas) — ₹102.12/litre petrol as of this
+writing, confirmed flat for at least 96 consecutive days in PPAC's own daily
+bulletin. `engine.ts` derives each driver's daily fuel cost from this real
+price times a documented city-mileage assumption (`estimateDailyFuelCost`),
+rather than a guessed rupee figure. The stress test's fuel-cost scenario cites
+the real price directly: *"Petrol in Delhi is ₹102.12/litre today (PPAC). A
+15% rise would put it near ₹117.44/litre."*
+
+Unlike weather, there is **no automated refresh script** for this one — PPAC
+publishes no API or downloadable table, only a same-day-dated PDF whose
+filename isn't predictable in advance. The JSON file documents exactly how to
+refresh it by hand, and says so rather than shipping a scraper that would
+silently break the next time PPAC renames a file.
