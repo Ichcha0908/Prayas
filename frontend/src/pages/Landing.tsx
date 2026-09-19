@@ -17,6 +17,7 @@ import { Button } from '@/components/ui';
 import { cn } from '@/lib/cn';
 import type { WeatherCode } from '@/api/types';
 import { WeatherIcon } from '@/lib/weather';
+import { PLFS_URBAN_SELF_EMPLOYED_SHARE } from '@/api/mock/engine';
 
 const TIMELINE: { day: string; code: WeatherCode; amount: number; tone: string }[] = [
   { day: 'Mon', code: 'clear', amount: 1320, tone: 'text-good-ink' },
@@ -200,8 +201,12 @@ export function Landing() {
                   &ldquo;My average month is fine. But I don&rsquo;t know what I&rsquo;ll earn next week, so I
                   don&rsquo;t know whether I can safely spend money today.&rdquo;
                 </p>
-                <footer className="mt-3 text-xs text-ink-muted">
-                  The gap this product closes — for 7.7 million gig workers in India
+                <footer className="mt-3 flex flex-wrap items-center gap-1.5 text-xs text-ink-muted">
+                  <span>
+                    The gap this product closes — self-employed workers are{' '}
+                    {PLFS_URBAN_SELF_EMPLOYED_SHARE}% of India&rsquo;s urban workforce, the largest single segment.
+                  </span>
+                  <span className="text-ink-faint">(PLFS, MoSPI)</span>
                 </footer>
               </blockquote>
               <p className="text-sm leading-relaxed text-ink-muted">

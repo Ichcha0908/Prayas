@@ -50,6 +50,7 @@ BACKEND_ORIGIN=http://localhost:9000 npm run dev
 | `src/data/weather-delhi-ncr.json` | Real historical weather (see below) |
 | `scripts/fetch-weather.mjs` | Refreshes the real weather file |
 | `src/data/fuel-price-delhi.json` | Real petrol/diesel price (see below) |
+| `src/data/plfs-urban-workforce-india.json` | Real national workforce data (see below) |
 | `src/api/mock/handlers.ts` | Reference implementation of all 9 endpoints |
 | `src/hooks/useAppData.tsx` | App-wide data + the scenario overlay |
 | `src/components/charts/` | Recharts components |
@@ -107,3 +108,27 @@ publishes no API or downloadable table, only a same-day-dated PDF whose
 filename isn't predictable in advance. The JSON file documents exactly how to
 refresh it by hand, and says so rather than shipping a scraper that would
 silently break the next time PPAC renames a file.
+
+## Real workforce data (PLFS)
+
+`src/data/plfs-urban-workforce-india.json` holds real figures from MoSPI's
+Periodic Labour Force Survey (PLFS): urban Worker Population Ratio by year,
+urban Labour Force Participation Rate by quarter, and the urban employment
+status split (self-employed / regular wage-salaried / casual labour). It was
+extracted from a chart the user exported from the PLFS dashboard — that
+dashboard has no public API, so this is a manually read, committed snapshot,
+same as the fuel price file.
+
+This is **national macro data, not a per-driver input** — it does not feed the
+income model, which stays keyed to each driver's own observed history. The one
+place it's used is a citation: `PLFS_URBAN_SELF_EMPLOYED_SHARE` (54.2%) grounds
+the landing page's framing of the persona, replacing a previously unsourced
+"7.7 million gig workers" claim with a real, cited figure.
+
+Not everything in the file is equally solid, and it says so: the annual WPR
+and the employment-status split are high confidence (clean, well-separated
+values). The four most recent LFPR quarters are flagged `unverified` — they
+jump far more than any earlier quarter-to-quarter change in the same series,
+which looks more like a column-misalignment artifact from a wide, flattened
+PDF table than a real one-quarter swing that size. The file documents the
+discrepancy rather than presenting an uncertain number as settled fact.

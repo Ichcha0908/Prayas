@@ -170,6 +170,19 @@ automated refresh: PPAC publishes no API, only a same-day-dated PDF whose
 filename can't be predicted in advance, so the data file documents how to
 update it by hand instead of shipping a scraper that would silently break.
 
+**Workforce context is also real, and scoped honestly.**
+`frontend/src/data/plfs-urban-workforce-india.json` holds figures from MoSPI's
+Periodic Labour Force Survey — extracted from a chart the PLFS dashboard has
+no public API for, so it's a manually read, committed snapshot rather than a
+live fetch. This is national macro data, not a per-driver input: it does not
+feed the income model. Its one use is a citation — the landing page states
+that self-employed workers are 54.2% of India's urban workforce (the largest
+single segment), replacing what was previously an unsourced "7.7 million gig
+workers" claim. The file is also explicit about what it doesn't trust: the
+most recent four quarters of one series are flagged `unverified` because they
+jump far more than any earlier quarter in the same table, which looks like a
+PDF column-alignment artifact rather than a real swing that size.
+
 ### Forecast model
 
 A three-layer hybrid, structured to mirror what the Python model will do:

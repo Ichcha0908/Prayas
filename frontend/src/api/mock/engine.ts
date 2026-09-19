@@ -20,6 +20,7 @@
 import type { ISODate, WeatherCode } from '../types';
 import realWeatherFile from '../../data/weather-delhi-ncr.json';
 import realFuelPriceFile from '../../data/fuel-price-delhi.json';
+import plfsWorkforceFile from '../../data/plfs-urban-workforce-india.json';
 
 /* -------------------------------------------------------------- primitives */
 
@@ -322,6 +323,21 @@ const CITY_KM_PER_LITRE = 38;
 function estimateDailyFuelCost(dailyDistanceKm: number): number {
   return Math.round((dailyDistanceKm / CITY_KM_PER_LITRE) * REAL_PETROL_PRICE_PER_LITRE);
 }
+
+/**
+ * Real national context for why this product models its persona as a
+ * self-employed / independent-contractor earner rather than a salaried
+ * employee: self-employed workers are the single largest segment of India's
+ * urban workforce, per MoSPI's Periodic Labour Force Survey (PLFS) — see
+ * src/data/plfs-urban-workforce-india.json for the source and how it was
+ * extracted. This is macro national context, not a per-driver input — it
+ * does not feed the income model, which stays keyed to each driver's own
+ * observed history. Exported so the landing page can cite the same figure
+ * rather than embedding it a second time.
+ */
+export const PLFS_URBAN_SELF_EMPLOYED_SHARE: number = (
+  plfsWorkforceFile as { employment_status_distribution_urban: { self_employed: number } }
+).employment_status_distribution_urban.self_employed;
 
 /** Day-of-week shape. Fridays weak, weekends strong — matches the persona. */
 const DOW_SHAPE = [1.18, 1.03, 0.97, 0.93, 0.95, 0.82, 1.22]; // Sun..Sat

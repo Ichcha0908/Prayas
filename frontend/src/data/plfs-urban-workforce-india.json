@@ -1,0 +1,53 @@
+{
+  "source": "Ministry of Statistics and Programme Implementation (MoSPI), Periodic Labour Force Survey (PLFS)",
+  "source_dashboard": "https://mospi.gov.in — PLFS Employment Indicators dashboard",
+  "extraction_note": "Extracted directly from a chart export the user downloaded from MoSPI's PLFS dashboard (a one-page PDF, no embedded source URL). The dashboard has no public API or downloadable CSV, so this is a manually read, committed snapshot rather than a live fetch — same pattern as fuel-price-delhi.json.",
+  "extracted_at": "2026-09-20",
+  "sector": "Urban",
+  "age_group": "15 years and above",
+  "status": "Usual Status (Principal + Subsidiary, PS+SS)",
+
+  "worker_population_ratio_by_year": {
+    "unit": "percent",
+    "confidence": "high — four clean, well-separated columns, monotonic trend, low extraction risk",
+    "years": {
+      "2022": { "male": 70.4, "person": 47.0, "female": 22.8 },
+      "2023": { "male": 71.6, "person": 48.8, "female": 25.2 },
+      "2024": { "male": 72.8, "person": 49.6, "female": 25.8 },
+      "2025": { "male": 73.0, "person": 49.7, "female": 25.9 }
+    }
+  },
+
+  "labour_force_participation_rate_by_quarter": {
+    "unit": "percent",
+    "confidence": "high for 2022-2024 (smooth quarter-to-quarter change); LOW for the four 2025-26 quarters",
+    "confidence_note": "Every quarter-to-quarter change from Jan-Mar 2022 through Oct-Dec 2024 is under 1 percentage point, consistent with how LFPR normally moves. The next value jumps from Person 50.4 to 55.0 and Female 25.2 to 33.4 in one step, and the source chart's own axis is also missing a 'Jan-Mar 2025' label between Oct-Dec 2024 and Apr-Jun 2025. This looks more like a column-alignment artifact from extracting a 16-column table out of a flattened PDF than a real one-quarter jump of that size. Treat the last four quarters as unverified until cross-checked against MoSPI's own PLFS bulletin.",
+    "quarters": [
+      { "quarter": "Jan-Mar 2022",  "male": 73.4, "person": 47.3, "female": 20.4 },
+      { "quarter": "Apr-Jun 2022",  "male": 73.3, "person": 47.5, "female": 20.9 },
+      { "quarter": "Jul-Sep 2022",  "male": 73.4, "person": 47.9, "female": 21.7 },
+      { "quarter": "Oct-Dec 2022",  "male": 73.3, "person": 48.2, "female": 22.3 },
+      { "quarter": "Jan-Mar 2023",  "male": 73.5, "person": 48.5, "female": 22.7 },
+      { "quarter": "Apr-Jun 2023",  "male": 73.5, "person": 48.8, "female": 23.2 },
+      { "quarter": "Jul-Sep 2023",  "male": 73.8, "person": 49.3, "female": 24.0 },
+      { "quarter": "Oct-Dec 2023",  "male": 74.1, "person": 49.9, "female": 25.0 },
+      { "quarter": "Jan-Mar 2024",  "male": 74.4, "person": 50.2, "female": 25.6 },
+      { "quarter": "Apr-Jun 2024",  "male": 74.7, "person": 50.1, "female": 25.2 },
+      { "quarter": "Jul-Sep 2024",  "male": 75.0, "person": 50.4, "female": 25.5 },
+      { "quarter": "Oct-Dec 2024",  "male": 75.4, "person": 50.4, "female": 25.2 },
+      { "quarter": "Apr-Jun 2025",  "male": 77.3, "person": 55.0, "female": 33.4, "unverified": true },
+      { "quarter": "Jul-Sep 2025",  "male": 77.2, "person": 52.2, "female": 33.7, "unverified": true },
+      { "quarter": "Oct-Dec 2025",  "male": 77.6, "person": 55.8, "female": 34.9, "unverified": true },
+      { "quarter": "Jan-Mar 2026",  "male": 77.3, "person": 55.5, "female": 34.7, "unverified": true }
+    ]
+  },
+
+  "employment_status_distribution_urban": {
+    "unit": "percent",
+    "confidence": "high on the three values; moderate on which value belongs to which legend entry",
+    "confidence_note": "The chart's legend order was 'regular wage/salaried employees, self employed, Casual labour' but did not visually bind each percentage to its legend entry. The mapping below follows PLFS's well-documented urban pattern (self-employment is consistently the largest urban segment; casual labour the smallest) rather than a directly read label pairing.",
+    "self_employed": 54.2,
+    "regular_wage_or_salaried": 38.3,
+    "casual_labour": 7.5
+  }
+}
