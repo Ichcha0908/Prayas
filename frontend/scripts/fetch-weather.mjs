@@ -60,8 +60,12 @@ function addDays(d, days) {
  */
 function mapWeatherCode(wmoCode, precipMm) {
   const isThunderstorm = [95, 96, 99].includes(wmoCode);
-  if (isThunderstorm || precipMm >= 38) return 'storm';
-  if (precipMm >= 20) return 'heavy_rain';
+  // IMD's official 24h rainfall classification: light <15mm, moderate
+  // 15-64.5mm, heavy 64.5mm+ (IMD via press reporting, see
+  // src/data/evidence-sources.json E06). Collapsed into this app's three
+  // rain buckets: rain=light, heavy_rain=moderate, storm=heavy-and-above.
+  if (isThunderstorm || precipMm >= 64.5) return 'storm';
+  if (precipMm >= 15) return 'heavy_rain';
   if (precipMm >= 3) return 'rain';
   if (wmoCode === 0) return 'clear';
   if (wmoCode === 1 || wmoCode === 2) return 'partly_cloudy';

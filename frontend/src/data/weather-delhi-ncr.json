@@ -2,7 +2,7 @@
   "source": "Open-Meteo Historical Weather API (ERA5 reanalysis)",
   "source_url": "https://open-meteo.com/en/docs/historical-weather-api",
   "license": "CC BY 4.0",
-  "fetched_at": "2026-09-19T22:02:13.613Z",
+  "fetched_at": "2026-09-19T23:18:01.574Z",
   "latitude": 28.5245,
   "longitude": 77.2065,
   "start_date": "2025-06-26",
@@ -29,7 +29,7 @@
       "tempC": 29
     },
     "2025-06-30": {
-      "code": "rain",
+      "code": "heavy_rain",
       "rainfallMm": 18.5,
       "tempC": 29
     },
@@ -99,7 +99,7 @@
       "tempC": 29
     },
     "2025-07-14": {
-      "code": "rain",
+      "code": "heavy_rain",
       "rainfallMm": 16.1,
       "tempC": 28
     },
@@ -179,7 +179,7 @@
       "tempC": 29
     },
     "2025-07-30": {
-      "code": "rain",
+      "code": "heavy_rain",
       "rainfallMm": 18.4,
       "tempC": 28
     },
@@ -289,7 +289,7 @@
       "tempC": 30
     },
     "2025-08-21": {
-      "code": "rain",
+      "code": "heavy_rain",
       "rainfallMm": 15.5,
       "tempC": 29
     },
@@ -344,7 +344,7 @@
       "tempC": 27
     },
     "2025-09-01": {
-      "code": "storm",
+      "code": "heavy_rain",
       "rainfallMm": 38.7,
       "tempC": 27
     },
@@ -1109,7 +1109,7 @@
       "tempC": 15
     },
     "2026-02-01": {
-      "code": "storm",
+      "code": "heavy_rain",
       "rainfallMm": 50.8,
       "tempC": 16
     },
@@ -1894,7 +1894,7 @@
       "tempC": 29
     },
     "2026-07-08": {
-      "code": "rain",
+      "code": "heavy_rain",
       "rainfallMm": 17.7,
       "tempC": 28
     },
@@ -2029,7 +2029,7 @@
       "tempC": 29
     },
     "2026-08-04": {
-      "code": "rain",
+      "code": "heavy_rain",
       "rainfallMm": 15,
       "tempC": 28
     },
@@ -2044,12 +2044,12 @@
       "tempC": 27
     },
     "2026-08-07": {
-      "code": "storm",
+      "code": "heavy_rain",
       "rainfallMm": 61.6,
       "tempC": 27
     },
     "2026-08-08": {
-      "code": "rain",
+      "code": "heavy_rain",
       "rainfallMm": 17.3,
       "tempC": 28
     },
@@ -2174,7 +2174,7 @@
       "tempC": 30
     },
     "2026-09-02": {
-      "code": "rain",
+      "code": "heavy_rain",
       "rainfallMm": 16.5,
       "tempC": 28
     },
@@ -2194,7 +2194,7 @@
       "tempC": 26
     },
     "2026-09-06": {
-      "code": "rain",
+      "code": "heavy_rain",
       "rainfallMm": 16.3,
       "tempC": 26
     },

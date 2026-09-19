@@ -146,16 +146,45 @@ export interface FestivalDef {
   latentUplift: number;
 }
 
+/**
+ * latentUplift is the GENERATOR's injected effect — analysis never reads it
+ * back (see the module doc comment). Where real evidence exists for a
+ * festival's platform-level demand effect, that evidence sets this value;
+ * see src/data/evidence-sources.json for the full citations. A platform-wide
+ * order-volume increase is not the same number as a per-rider income uplift
+ * (platforms onboard extra riders for big festivals, so per-rider uplift is
+ * smaller than the headline volume figure) — each note below says which one
+ * the cited evidence actually measured and how that maps to this value.
+ */
 export const FESTIVALS: FestivalDef[] = [
   { id: 'republic_day', name: 'Republic Day', dates: ['2025-01-26', '2026-01-26', '2027-01-26'], windowBefore: 1, windowAfter: 0, latentUplift: 0.06 },
+  // New Year's Eve is the single densest ordering night of the year (Zomato
+  // ~6,000 orders/minute, Swiggy ~6,600/minute at peak — Business Standard/
+  // Inc42, evidence E24) but that's platform-wide peak-minute volume, not a
+  // full-day per-rider figure, so the existing estimate is kept rather than
+  // overwritten with a mismatched number.
   { id: 'new_year', name: 'New Year', dates: ['2025-01-01', '2026-01-01', '2027-01-01'], windowBefore: 2, windowAfter: 0, latentUplift: 0.24 },
   { id: 'holi', name: 'Holi', dates: ['2025-03-14', '2026-03-04', '2027-03-22'], windowBefore: 1, windowAfter: 1, latentUplift: 0.13 },
   { id: 'eid', name: 'Eid al-Fitr', dates: ['2025-03-31', '2026-03-20', '2027-03-10'], windowBefore: 2, windowAfter: 1, latentUplift: 0.17 },
   { id: 'independence_day', name: 'Independence Day', dates: ['2025-08-15', '2026-08-15', '2027-08-15'], windowBefore: 0, windowAfter: 0, latentUplift: 0.07 },
-  { id: 'raksha_bandhan', name: 'Raksha Bandhan', dates: ['2025-08-09', '2026-08-28', '2027-08-17'], windowBefore: 2, windowAfter: 0, latentUplift: 0.15 },
+  // 2026 date (28 Aug) confirmed against the Hindu lunisolar calendar
+  // (Wikipedia, evidence E26). Uplift set to Inc42's cited quick-commerce
+  // guidance of "~14%" for Raksha Bandhan specifically (evidence E22), not
+  // the "threefold jump" headline in the same source, which described order
+  // COUNT for a gifting category, not a rider's day-level income change.
+  { id: 'raksha_bandhan', name: 'Raksha Bandhan', dates: ['2025-08-09', '2026-08-28', '2027-08-17'], windowBefore: 2, windowAfter: 0, latentUplift: 0.14 },
   { id: 'ganesh_chaturthi', name: 'Ganesh Chaturthi', dates: ['2025-08-27', '2026-09-14', '2027-09-04'], windowBefore: 1, windowAfter: 2, latentUplift: 0.11 },
+  // Navratri (overlapping this window) saw about a 40% surge specifically in
+  // vegetarian/thali orders (magicpin via PTI, evidence E23) — a category
+  // mix-shift more than a volume shift, per that evidence's own framing, so
+  // this stays a moderate double-digit uplift rather than tracking the 40%.
   { id: 'dussehra', name: 'Dussehra', dates: ['2025-10-02', '2026-10-20', '2027-10-09'], windowBefore: 2, windowAfter: 1, latentUplift: 0.16 },
-  { id: 'diwali', name: 'Diwali', dates: ['2025-10-20', '2026-11-08', '2027-10-29'], windowBefore: 4, windowAfter: 2, latentUplift: 0.31 },
+  // Zepto reported 2M+ orders/day in Diwali week 2025, peaking near 2.37M
+  // (Business Standard, evidence E20) — platform volume, not a per-rider
+  // figure, and that evidence explicitly instructs: "model ~+20-30%, not
+  // +100%" since platforms add extra riders for the festival. Set to 0.28,
+  // inside that cited range, down from an uncited 0.31.
+  { id: 'diwali', name: 'Diwali', dates: ['2025-10-20', '2026-11-08', '2027-10-29'], windowBefore: 4, windowAfter: 2, latentUplift: 0.28 },
   { id: 'christmas', name: 'Christmas', dates: ['2025-12-25', '2026-12-25', '2027-12-25'], windowBefore: 3, windowAfter: 0, latentUplift: 0.19 },
 ];
 
@@ -282,8 +311,10 @@ interface OpenMeteoForecastResponse {
  */
 function mapWmoWeatherCode(wmoCode: number, rainfallMm: number): WeatherCode {
   const isThunderstorm = wmoCode === 95 || wmoCode === 96 || wmoCode === 99;
-  if (isThunderstorm || rainfallMm >= 38) return 'storm';
-  if (rainfallMm >= 20) return 'heavy_rain';
+  // Thresholds match generateWeather's own IMD-aligned bands (light <15mm,
+  // moderate 15-64.5mm, heavy 64.5mm+ collapsed into rain/heavy_rain/storm).
+  if (isThunderstorm || rainfallMm >= 64.5) return 'storm';
+  if (rainfallMm >= 15) return 'heavy_rain';
   if (rainfallMm >= 3) return 'rain';
   if (wmoCode === 0) return 'clear';
   if (wmoCode === 1 || wmoCode === 2) return 'partly_cloudy';
@@ -363,15 +394,25 @@ function generateWeather(date: Date, rng: () => number): WeatherObs {
   let code: WeatherCode;
   let rainfallMm = 0;
 
+  // Rain-amount bands follow IMD's official 24h rainfall classification —
+  // light <15mm, moderate 15-64.5mm, heavy 64.5mm+ (IMD also has "very heavy"
+  // 115.6-204.4mm and "extremely heavy" 204.4mm+ tiers, but Delhi's own worst
+  // recorded single days — 153mm in Jul 2023, 98.7mm in Aug 2026, both IMD via
+  // press reporting — sit inside "heavy"/"very heavy", never the extreme tier,
+  // so the app's three-bucket scheme collapses moderate+light into 'rain' and
+  // heavy-and-above into 'storm', with 'heavy_rain' covering IMD's own
+  // "moderate" band. The storm ceiling (154mm) is set just past Delhi's actual
+  // worst recorded day rather than IMD's theoretical extreme, which the city's
+  // own records don't reach.
   if (roll < wetness * 0.28) {
     code = 'storm';
-    rainfallMm = 38 + rng() * 55;
+    rainfallMm = 64.5 + rng() * 89.5;
   } else if (roll < wetness * 0.62) {
     code = 'heavy_rain';
-    rainfallMm = 20 + rng() * 22;
+    rainfallMm = 15 + rng() * 49.4;
   } else if (roll < wetness) {
     code = 'rain';
-    rainfallMm = 3 + rng() * 14;
+    rainfallMm = 3 + rng() * 11.9;
   } else if (roll < wetness + 0.16) {
     code = 'cloudy';
   } else if (roll < wetness + 0.4) {
@@ -590,7 +631,18 @@ export function buildHistory(spec: DriverSpec, anchor: Date = today()): DailyRec
       hoursWorked = clamp(8.2 * clamp(weatherMult + 0.08, 0.6, 1.1) * (hit ? 1.12 : 1) + gauss(rng) * 0.9, 3.5, 13);
       const gross = spec.baseDailyIncome * dowMult * weatherMult * festivalMult * trend * noise;
       // Incentive tiers kick in on high-demand days.
-      incentives = demandIndex > 1.05 && rng() < 0.55 ? Math.round(60 + rng() * 240) : 0;
+      const demandIncentive = demandIndex > 1.05 && rng() < 0.55 ? Math.round(60 + rng() * 240) : 0;
+      // Platforms add a per-order rain fee during heavier rain (Rs15-35/order
+      // — Zomato/Swiggy policy via market reporting, evidence E13), which
+      // partially offsets the weatherMult penalty above rather than cancelling
+      // it: a full per-order calculation at typical order counts would nearly
+      // erase the loss, but the evidence itself frames this as a partial
+      // offset, and the rain effect measured throughout this app (and the
+      // whole "Rain Shock" scenario) depends on rain remaining net negative.
+      // Kept flat and small for exactly that reason. Light 'rain' gets none —
+      // rain-fee mode typically only activates once conditions worsen.
+      const rainFeeBonus = weather.code === 'storm' ? 70 : weather.code === 'heavy_rain' ? 40 : 0;
+      incentives = demandIncentive + rainFeeBonus;
       income = Math.max(140, Math.round(gross + incentives));
       avgDeliveryValue = 38 + rng() * 26;
       deliveries = Math.max(4, Math.round(income / avgDeliveryValue));
@@ -899,14 +951,24 @@ export function forecastDays(
     const raw = liveWeatherOn(iso) ?? generateWeather(date, rng);
     // A rainfall multiplier scales what is already forecast AND imposes a floor,
     // otherwise an extreme-rain scenario over a dry week would change nothing.
+    // The floor sits just under the storm threshold at max multiplier (56mm
+    // at 3x, against a 64.5mm storm boundary) so "Extreme" pushes every day
+    // to at least moderate-to-heavy rain without erasing day-to-day variation
+    // by forcing the whole week to the single worst classification — that
+    // variation is what lets a scenario show a graduated week rather than
+    // seven identical record-breaking days. The generator's own storm-tier
+    // ceiling (see generateWeather above) is where Delhi's real recorded
+    // extremes — 98.7mm and 153mm, IMD via press reporting — actually apply:
+    // a naturally severe day can still reach that ceiling on top of this floor.
     const mult = context.rainfallMultiplier;
-    const imposedFloor = mult > 1.2 ? (mult - 1) * 16 : 0;
+    const imposedFloor = mult > 1.2 ? (mult - 1) * 28 : 0;
     const scaledRain = Math.round(Math.max(raw.rainfallMm * mult, imposedFloor));
+    // Thresholds match generateWeather's own IMD-aligned bands above.
     const code: WeatherCode =
       mult > 1.05
-        ? scaledRain >= 38
+        ? scaledRain >= 64.5
           ? 'storm'
-          : scaledRain >= 20
+          : scaledRain >= 15
             ? 'heavy_rain'
             : scaledRain >= 3
               ? 'rain'

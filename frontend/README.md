@@ -51,6 +51,7 @@ BACKEND_ORIGIN=http://localhost:9000 npm run dev
 | `scripts/fetch-weather.mjs` | Refreshes the real weather file |
 | `src/data/fuel-price-delhi.json` | Real petrol/diesel price (see below) |
 | `src/data/plfs-urban-workforce-india.json` | Real national workforce data (see below) |
+| `src/data/evidence-sources.json` | 30 cited claims backing the model calibration and landing-page copy (see root README's Evidence base section) |
 | `src/api/mock/handlers.ts` | Reference implementation of all 9 endpoints |
 | `src/hooks/useAppData.tsx` | App-wide data + the scenario overlay |
 | `src/components/charts/` | Recharts components |

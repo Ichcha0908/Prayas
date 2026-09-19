@@ -158,6 +158,21 @@ doesn't exist yet. Every income effect described above (rain reducing hours,
 the measured rain-day income gap in Insights) is therefore now computed
 against actual Delhi monsoon rainfall on actual dates, not invented noise.
 
+**Arjun's income level is deliberately calibrated, not guessed.** The
+brief's own instruction is that this persona should read as "empowering,
+intelligent... not poor," so the baseline needed to sit above the lower end of
+what's actually reported for Indian delivery work, without becoming
+unrealistic. Cross-checked against `evidence-sources.json`: PAIGAM/IFAT's
+worker survey found 43% of app-based delivery workers earn under ₹10,000/month
+and 27% earn ₹500-1,000/day; Fairwork India's 2024 interviews reported
+₹500-600/day; PLFS puts the *national* self-employed average at ₹12,144/month
+across every sector, most of it far lower-earning than urban gig delivery.
+Arjun's computed average — currently ₹36,679/month, ₹1,356 median daily — sits
+above all three, consistent with the brief, while Eternal's own CEO has stated
+platform-wide average earnings of ₹102/hour in 2025 (up from ₹92 in 2024,
+company-reported, not independently audited) as a broader sanity check on the
+hourly scale involved.
+
 **Neither is the forward-looking forecast, as of the most recent change.**
 Historical weather became real first; the actual forecast pages
 (`/app/forecast`, `/app/cashflow`) kept using synthetic weather for future
@@ -209,6 +224,58 @@ A three-layer hybrid, structured to mirror what the Python model will do:
 
 A naive trailing-7-day moving average runs alongside and is shown in the UI, so
 the model's contribution is visible rather than asserted.
+
+### Evidence base
+
+`frontend/src/data/evidence-sources.json` holds 30 cited claims — government
+data, platform-reported figures and trade-press reporting — that several parts
+of the model and the landing page are calibrated against. Each row carries the
+claim, its exact value, source, year, a confidence rating, and which part of
+the product it informs. When this file was imported, every source URL was
+checked live: 26 of 30 returned 200 directly; the other 4 are on real, live
+domains (Fairwork, Flourish Ventures, NewsBytes, ThePrint) that either
+bot-block simple HTTP clients or have moved one specific PDF — not evidence of
+a fabricated citation, but recorded honestly as unconfirmed rather than
+silently treated as equal to the 26 that resolved cleanly.
+
+What changed as a result:
+
+- **Rain classification now follows IMD's own bands** (light <15mm, moderate
+  15–64.5mm, heavy 64.5mm+), replacing three arbitrary thresholds that were
+  never checked against anything. The synthetic generator's rain-amount
+  ranges, the live-forecast WMO-code mapping, and the historical fetch
+  script's mapping were all updated to match — three places that need to
+  agree with each other, now agreeing with IMD instead of with each other by
+  coincidence. The stress test's "Extreme" rainfall setting is calibrated so
+  its ceiling lands near Delhi's own worst recorded single-day rainfall
+  (98.7mm in Aug 2026, 153mm in Jul 2023 — IMD via press reporting), not an
+  arbitrary number.
+- **A rain-fee surcharge now partially offsets the rain income penalty.**
+  Platforms add a per-order rain fee during heavier rain (₹15–35/order,
+  Zomato/Swiggy policy via market reporting). Modelled as a small flat bonus
+  on `heavy_rain`/`storm` days — deliberately kept well below the
+  multiplicative loss at every tier, checked numerically after implementing
+  it, because the evidence itself frames this as a *partial* offset and the
+  entire "Simulate Rain Shock" demo depends on rain staying net negative.
+- **Diwali's uplift dropped from an uncited 31% to 28%,** and **Raksha
+  Bandhan's from 15% to 14%**, both now inside ranges the evidence explicitly
+  recommends — one source's own note reads "platform-level volume; per-rider
+  uplift is smaller... model ~20-30%, not +100%," which is exactly the kind of
+  distinction this file preserves rather than collapses.
+- **Raksha Bandhan's 2026 date (28 August) was cross-checked** against the
+  Hindu lunisolar calendar and confirmed already correct.
+- **The landing page's "7.7 million gig workers" line, and a "47% couldn't
+  cover a month of expenses without borrowing" stat**, replaced softer
+  unsourced framing with NITI Aayog's and Flourish Ventures' actual figures.
+
+**Four evidence rows are preserved but not yet built into the model**: real-time
+traffic congestion (TomTom Traffic Index), Delhi's AQI/GRAP winter
+restrictions (Commission for Air Quality Management), heat's effect on
+delivery-worker earning windows (WRI India, Business Standard), and a
+zone-level "Income Weather Map" showing waterlogging risk. All four are
+genuine, cited, and would extend the same context-multiplier pattern the
+weather and festival models already use — they're sitting in the evidence
+file as a ready-made spec for whoever builds them next, not silently dropped.
 
 ### Resilience buffer
 

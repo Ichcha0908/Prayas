@@ -214,6 +214,24 @@ export function Landing() {
                 landing next to a payment date is what turns a normal month into a crisis. KAMAI.AI makes that collision
                 visible before it happens, and sizes the buffer needed to absorb it.
               </p>
+
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                <ProblemStat
+                  value="47%"
+                  label="couldn’t cover a month of expenses without borrowing"
+                  source="Flourish Ventures & 60 Decibels, The Digital Hustle: India"
+                />
+                <ProblemStat
+                  value="7.7M → 23.5M"
+                  label="India’s gig workforce, 2020-21 projected to 2029-30"
+                  source="NITI Aayog"
+                />
+                <ProblemStat
+                  value="Instability,"
+                  label="not low pay alone, is what the Economic Survey flags as the risk"
+                  source="Economic Survey, via Forbes India"
+                />
+              </div>
             </div>
           </div>
         </div>
@@ -317,6 +335,21 @@ function HeroStat({ label, value, sub, accent }: { label: string; value: string;
         {value}
       </p>
       <p className="mt-1.5 text-xs text-ink-muted">{sub}</p>
+    </div>
+  );
+}
+
+/**
+ * A cited fact in the problem section. Every number here traces to
+ * src/data/evidence-sources.json — see that file for the full claim, exact
+ * value, methodology notes and a live-reachability check on the source URL.
+ */
+function ProblemStat({ value, label, source }: { value: string; label: string; source: string }) {
+  return (
+    <div className="rounded-xl border border-canvas-line bg-canvas-card p-4">
+      <p className="tnum font-display text-lg font-700 leading-tight text-ink">{value}</p>
+      <p className="mt-1.5 text-xs leading-relaxed text-ink-muted">{label}</p>
+      <p className="mt-2 text-[10px] uppercase tracking-[0.06em] text-ink-faint">{source}</p>
     </div>
   );
 }

@@ -1,0 +1,492 @@
+{
+  "source_file": "income_weather_evidence.csv (user-supplied)",
+  "imported_at": "2026-09-20",
+  "url_check_note": "url_check was run as a live HTTP reachability sweep when this file was imported. \"verified\" = 200 OK. \"bot_blocked\" = the domain root resolves fine but this specific page returned 403, consistent with anti-bot protection rather than a dead link. \"link_moved\" = the domain is alive but this exact path 404s. \"unchecked\" = not tested. This checks reachability only, not that the page content matches the claim.",
+  "evidence": [
+    {
+      "id": "E01",
+      "claim": "Size of India's gig workforce",
+      "value": "7.7 million in 2020-21, projected 23.5 million by 2029-30",
+      "unit": "count",
+      "source_org": "NITI Aayog",
+      "source_title": "India's Booming Gig and Platform Economy",
+      "source_url": "https://www.niti.gov.in/sites/default/files/2022-06/25th_June_Final_Report_27062022.pdf",
+      "year": 2022,
+      "confidence": "high",
+      "use_in_ui": [
+        "landing_page_problem"
+      ],
+      "notes": "Use for the market-size line only. Not an income claim.",
+      "url_check": "verified"
+    },
+    {
+      "id": "E02",
+      "claim": "Average delivery-partner earnings per hour",
+      "value": "Rs 102/hour in 2025, up from Rs 92 in 2024, excluding tips",
+      "unit": "INR/hour",
+      "source_org": "Eternal/Zomato CEO (public statement)",
+      "source_title": "Deepinder Goyal post, Jan 2026",
+      "source_url": "https://www.outlookbusiness.com/news/pay-education-demographics-what-the-numbers-say-about-indias-1-crore-gig-workers",
+      "year": 2026,
+      "confidence": "medium",
+      "use_in_ui": [
+        "income_baseline"
+      ],
+      "notes": "Company-reported, not independently audited. Cite as platform-stated.",
+      "url_check": "verified"
+    },
+    {
+      "id": "E03",
+      "claim": "Share of delivery workers earning under Rs 10,000/month",
+      "value": "43% under Rs 10,000/month; 27% earn Rs 500-1,000/day",
+      "unit": "percent",
+      "source_org": "PAIGAM + Indian Federation of App-based Transport Workers",
+      "source_title": "Survey of app-based workers",
+      "source_url": "https://www.outlookbusiness.com/news/pay-education-demographics-what-the-numbers-say-about-indias-1-crore-gig-workers",
+      "year": 2024,
+      "confidence": "medium",
+      "use_in_ui": [
+        "income_baseline"
+      ],
+      "notes": "Shows the persona sits above median. Say so in the UI.",
+      "url_check": "verified"
+    },
+    {
+      "id": "E04",
+      "claim": "Reported daily earnings in worker interviews",
+      "value": "Rs 500-600/day reported by interviewed workers; no platform scored above 6/10 on fair pay",
+      "unit": "INR/day",
+      "source_org": "Fairwork India (IIIT-B CITAPP + Oxford Internet Institute)",
+      "source_title": "Fairwork India Ratings 2024",
+      "source_url": "https://fair.work/wp-content/uploads/sites/17/2024/10/Fairwork_India_Report_2024.pdf",
+      "year": 2024,
+      "confidence": "high",
+      "use_in_ui": [
+        "income_baseline",
+        "ethics_page"
+      ],
+      "notes": "Also the source for 'no sick pay' framing.",
+      "url_check": "link_moved"
+    },
+    {
+      "id": "E05",
+      "claim": "Gig-worker financial fragility",
+      "value": "47% of Indian gig workers could not cover a month of expenses without borrowing",
+      "unit": "percent",
+      "source_org": "Flourish Ventures + 60 Decibels",
+      "source_title": "The Digital Hustle: India Spotlight",
+      "source_url": "https://flourishventures.com/research/digital-hustle/india/",
+      "year": 2020,
+      "confidence": "high",
+      "use_in_ui": [
+        "landing_page_problem",
+        "buffer_rationale"
+      ],
+      "notes": "The strongest single stat for why a resilience buffer matters.",
+      "url_check": "bot_blocked"
+    },
+    {
+      "id": "E06",
+      "claim": "IMD rainfall classification bands",
+      "value": "light <15mm, moderate 15-64.5mm, heavy 64.5-115.5mm, very heavy 115.6-204.4mm, extremely heavy >204.4mm",
+      "unit": "mm/24h",
+      "source_org": "India Meteorological Department",
+      "source_title": "IMD rainfall categories (via reported IMD briefings)",
+      "source_url": "https://www.tribuneindia.com/news/delhi/delhi-records-highest-single-day-rainfall-for-july-since-1982-imd-524160",
+      "year": 2023,
+      "confidence": "high",
+      "use_in_ui": [
+        "weather_model",
+        "map_layer"
+      ],
+      "notes": "Use these exact bands for the rain feature. Do not invent your own.",
+      "url_check": "verified"
+    },
+    {
+      "id": "E07",
+      "claim": "Delhi monsoon rainfall normal and recent actual",
+      "value": "Normal 640.4mm (1971-2020); 2025 monsoon actual 902.6mm, classified Excess",
+      "unit": "mm/season",
+      "source_org": "India Meteorological Department",
+      "source_title": "Southwest Monsoon Report 2025",
+      "source_url": "https://mausam.imd.gov.in/newdelhi/mcdata/seasonal_report.pdf",
+      "year": 2025,
+      "confidence": "high",
+      "use_in_ui": [
+        "weather_model"
+      ],
+      "notes": "Anchors the 'monsoon is getting more volatile' framing.",
+      "url_check": "verified"
+    },
+    {
+      "id": "E08",
+      "claim": "Delhi August 2026 rainfall departure",
+      "value": "Safdarjung recorded 354.1mm against a normal of 233.1mm, 52% above normal",
+      "unit": "mm/month",
+      "source_org": "India Meteorological Department",
+      "source_title": "Monthly Weather Report of Delhi, Aug 2026",
+      "source_url": "https://mausam.imd.gov.in/newdelhi/mcdata/monthly_report.pdf",
+      "year": 2026,
+      "confidence": "high",
+      "use_in_ui": [
+        "weather_model"
+      ],
+      "notes": "Most recent Delhi anomaly. Good for the city/climate layer.",
+      "url_check": "verified"
+    },
+    {
+      "id": "E09",
+      "claim": "Delhi single-day rainfall extremes",
+      "value": "153mm in 24h (Jul 2023, highest July day since 1982); 98.7mm in 24h (Aug 2026)",
+      "unit": "mm/24h",
+      "source_org": "IMD via press reporting",
+      "source_title": "Tribune India / IMD briefings",
+      "source_url": "https://www.tribuneindia.com/news/delhi/delhi-records-highest-single-day-rainfall-for-july-since-1982-imd-524160",
+      "year": 2023,
+      "confidence": "high",
+      "use_in_ui": [
+        "stress_test_extreme"
+      ],
+      "notes": "Upper bound for the rainfall slider.",
+      "url_check": "verified"
+    },
+    {
+      "id": "E10",
+      "claim": "Rain effect on delivery order volume",
+      "value": "Food delivery orders typically rise 15-30% during heavy rain",
+      "unit": "percent",
+      "source_org": "Restaurant industry executives via trade press",
+      "source_title": "Restaurant India",
+      "source_url": "https://www.restaurantindia.in/article/why-rainy-days-mean-bigger-restaurant-bills.16926",
+      "year": 2026,
+      "confidence": "medium",
+      "use_in_ui": [
+        "weather_model"
+      ],
+      "notes": "Demand side only. Do not equate rising demand with rising rider income.",
+      "url_check": "verified"
+    },
+    {
+      "id": "E11",
+      "claim": "Monsoon app-traffic uplift",
+      "value": "Platform app traffic up 10-15% over a two-week monsoon spell",
+      "unit": "percent",
+      "source_org": "Zepto COO (public statement)",
+      "source_title": "Trade press interview",
+      "source_url": "https://www.slurrp.com/article/how-do-food-delivery-executives-cope-with-indian-monsoons-heres-why-your-support-matters-1720869036731",
+      "year": 2024,
+      "confidence": "low",
+      "use_in_ui": [
+        "weather_model"
+      ],
+      "notes": "Company-stated, single quote. Treat as directional.",
+      "url_check": "verified"
+    },
+    {
+      "id": "E12",
+      "claim": "Rain reduces rider supply, not just demand",
+      "value": "Platform reported lower availability of delivery partners due to earlier-than-expected monsoon showers",
+      "unit": "qualitative",
+      "source_org": "Swiggy (quarterly results statement)",
+      "source_title": "Reuters coverage of Swiggy results",
+      "source_url": "https://finance.yahoo.com/news/indias-swiggy-logs-wider-first-101952420.html",
+      "year": 2025,
+      "confidence": "high",
+      "use_in_ui": [
+        "weather_model"
+      ],
+      "notes": "The key nuance: rain raises demand AND removes riders. Drives the supply-side model.",
+      "url_check": "verified"
+    },
+    {
+      "id": "E13",
+      "claim": "Rain surcharge per order",
+      "value": "Rs 15-35 additional rain fee, described as aiding delivery partners",
+      "unit": "INR/order",
+      "source_org": "Zomato and Swiggy policy, via market reporting",
+      "source_title": "Newsbytes",
+      "source_url": "https://www.newsbytesapp.com/news/business/zomato-swiggy-shares-rise-as-rain-fee-returns-for-members/story",
+      "year": 2025,
+      "confidence": "medium",
+      "use_in_ui": [
+        "weather_model"
+      ],
+      "notes": "Partially offsets rain losses. Model it, don't ignore it.",
+      "url_check": "bot_blocked"
+    },
+    {
+      "id": "E14",
+      "claim": "Waterlogging disrupts NCR delivery operations",
+      "value": "Heavy rain across Delhi, Gurgaon, Noida, Ghaziabad and Faridabad caused severe waterlogging and delivery delays despite surge charges",
+      "unit": "qualitative",
+      "source_org": "Business Standard",
+      "source_title": "Heavy rains impact food delivery and quick commerce in north India",
+      "source_url": "https://www.business-standard.com/industry/news/heavy-rains-impact-food-delivery-and-quick-commerce-in-north-india-124081300425_1.html",
+      "year": 2024,
+      "confidence": "high",
+      "use_in_ui": [
+        "map_layer",
+        "weather_model"
+      ],
+      "notes": "Source for zone-level waterlogging risk on the Income Weather Map.",
+      "url_check": "verified"
+    },
+    {
+      "id": "E15",
+      "claim": "New Delhi traffic baseline",
+      "value": "Average speed 20.8 km/h in 2025 (down from 21.9 km/h); congestion up 3.5 percentage points year on year; 23rd most congested city globally",
+      "unit": "km/h",
+      "source_org": "TomTom",
+      "source_title": "TomTom Traffic Index 2025 edition",
+      "source_url": "https://www.tomtom.com/traffic-index/country/india/",
+      "year": 2026,
+      "confidence": "high",
+      "use_in_ui": [
+        "traffic_model"
+      ],
+      "notes": "Use 19.0 min per 10km as the free-flow reference for Delhi.",
+      "url_check": "verified"
+    },
+    {
+      "id": "E16",
+      "claim": "Congestion level definition",
+      "value": "A congestion level of 40 means journeys took 40% longer than free-flow conditions",
+      "unit": "percent",
+      "source_org": "TomTom",
+      "source_title": "Traffic Index methodology",
+      "source_url": "https://www.tomtom.com/traffic-index/about/",
+      "year": 2026,
+      "confidence": "high",
+      "use_in_ui": [
+        "traffic_model"
+      ],
+      "notes": "Needed so traffic_min_per_10km is derived, not invented.",
+      "url_check": "verified"
+    },
+    {
+      "id": "E17",
+      "claim": "Delhi air-quality restrictions frequency",
+      "value": "GRAP invoked 17 times between Jan 2025 and Jan 2026; Stage III for 53 days, Stage IV for 15 days; AQI reached 430",
+      "unit": "days/count",
+      "source_org": "Commission for Air Quality Management, analysed by ThePrint",
+      "source_title": "GRAP imposition analysis",
+      "source_url": "https://theprint.in/environment/delhi-brought-grap-reactively-after-aqi-crossed-limit-13-out-of-17-times-this-winter/2855807/",
+      "year": 2026,
+      "confidence": "high",
+      "use_in_ui": [
+        "air_quality_model"
+      ],
+      "notes": "Winter income risk is a Delhi-specific, recurring, forecastable event.",
+      "url_check": "bot_blocked"
+    },
+    {
+      "id": "E18",
+      "claim": "Heat exposure and rider working patterns",
+      "value": "Temperatures above 45C; riders report 14-15 hour days with one penalty-free cancellation per day",
+      "unit": "degC",
+      "source_org": "Business Standard",
+      "source_title": "Quick commerce faces heatwave test",
+      "source_url": "https://www.business-standard.com/amp/companies/news/gig-workers-in-a-45-degrees-economy-quick-commerce-faces-heatwave-test-126052700925_1.html",
+      "year": 2026,
+      "confidence": "high",
+      "use_in_ui": [
+        "heat_model",
+        "ethics_page"
+      ],
+      "notes": "Use for the summer scenario and the social-impact section.",
+      "url_check": "verified"
+    },
+    {
+      "id": "E19",
+      "claim": "Heat and incentive windows",
+      "value": "Income depends on completing high volumes during peak hours, many of which fall in the hottest part of the day",
+      "unit": "qualitative",
+      "source_org": "WRI India",
+      "source_title": "Rising Heat's Invisible Burden on Delivery Workers",
+      "source_url": "https://wri-india.org/perspectives/rising-heats-invisible-burden-delivery-workers",
+      "year": 2026,
+      "confidence": "high",
+      "use_in_ui": [
+        "heat_model"
+      ],
+      "notes": "Explains WHY heat costs income: missed incentive slabs, not just fewer trips.",
+      "url_check": "verified"
+    },
+    {
+      "id": "E20",
+      "claim": "Diwali order volumes",
+      "value": "Zepto delivered over 2 million orders/day in Diwali week 2025, peaking at 2.37 million; Swiggy and magicpin reported record food-delivery orders",
+      "unit": "orders/day",
+      "source_org": "Business Standard; PTI via Entrepreneur India",
+      "source_title": "Diwali 2025 platform reporting",
+      "source_url": "https://www.business-standard.com/amp/companies/news/zepto-diwali-orders-2-million-daily-40-percent-more-than-rival-125103001122_1.html",
+      "year": 2025,
+      "confidence": "high",
+      "use_in_ui": [
+        "festival_model"
+      ],
+      "notes": "Platform-level volume. Per-rider uplift is smaller because platforms onboard extra riders. Model ~+20-30%, not +100%.",
+      "url_check": "verified"
+    },
+    {
+      "id": "E21",
+      "claim": "Festive-season retail scale",
+      "value": "Navratri-to-Diwali 2025 trade reached Rs 5.4 lakh crore in goods, up about 25% year on year",
+      "unit": "INR crore",
+      "source_org": "Confederation of All India Traders (CAIT) survey",
+      "source_title": "Festive season sales survey",
+      "source_url": "https://www.newsonair.gov.in/tag/indias-retail-sector-hits-record",
+      "year": 2025,
+      "confidence": "medium",
+      "use_in_ui": [
+        "festival_model"
+      ],
+      "notes": "Context for the festive window, not a rider income figure.",
+      "url_check": "verified"
+    },
+    {
+      "id": "E22",
+      "claim": "Raksha Bandhan quick-commerce demand",
+      "value": "Threefold jump in Raksha Bandhan orders reported on a quick-commerce platform; Gen Z over 40% of shoppers",
+      "unit": "multiple",
+      "source_org": "Flipkart Minutes via Business Today",
+      "source_title": "Raksha Bandhan quick commerce reporting",
+      "source_url": "https://www.businesstoday.in/india/story/from-rakhis-to-smartphones-indians-turn-to-quick-commerce-for-last-minute-raksha-bandhan-shopping-552002-2026-08-28",
+      "year": 2026,
+      "confidence": "medium",
+      "use_in_ui": [
+        "festival_model"
+      ],
+      "notes": "Category-specific (gifting), so rider-level uplift is far smaller. Model ~+14%.",
+      "url_check": "verified"
+    },
+    {
+      "id": "E23",
+      "claim": "Navratri category shift",
+      "value": "Vegetarian and thali orders surged about 40% during Navratri",
+      "unit": "percent",
+      "source_org": "magicpin via PTI",
+      "source_title": "Festive food delivery reporting",
+      "source_url": "https://www.entrepreneurindia.com/blog/en/article/festive-feasting-fueled-food-delivery-boom-swiggy-magicpin-reported-record-orders-around-diwali.57678",
+      "year": 2025,
+      "confidence": "medium",
+      "use_in_ui": [
+        "festival_model"
+      ],
+      "notes": "A mix shift more than a volume shift. Model a modest uplift.",
+      "url_check": "verified"
+    },
+    {
+      "id": "E24",
+      "claim": "New Year's Eve peak ordering",
+      "value": "Peak of about 6,000 orders/minute (Zomato) and 6,600/minute (Swiggy); order volumes up 45% year on year in 2022",
+      "unit": "orders/minute",
+      "source_org": "Business Standard; Inc42",
+      "source_title": "NYE platform reporting",
+      "source_url": "https://www.business-standard.com/article/companies/food-orders-ring-in-for-zomato-swiggy-as-india-stays-home-new-year-s-eve-121123101186_1.html",
+      "year": 2022,
+      "confidence": "high",
+      "use_in_ui": [
+        "festival_model"
+      ],
+      "notes": "The densest single night of the year. Concentrated in a few hours.",
+      "url_check": "verified"
+    },
+    {
+      "id": "E25",
+      "claim": "Delhi petrol price range 2026",
+      "value": "Roughly Rs 94.72 to Rs 102.12 per litre across 2026",
+      "unit": "INR/litre",
+      "source_org": "Business Today fuel price tracker",
+      "source_title": "Petrol price in Delhi",
+      "source_url": "https://www.businesstoday.in/fuel-price/petrol-price-in-new-delhi-today",
+      "year": 2026,
+      "confidence": "medium",
+      "use_in_ui": [
+        "cost_model"
+      ],
+      "notes": "Quoted rates vary by district page. Use as a range, refresh before demo day.",
+      "url_check": "verified"
+    },
+    {
+      "id": "E26",
+      "claim": "Raksha Bandhan 2026 date",
+      "value": "Friday 28 August 2026",
+      "unit": "date",
+      "source_org": "Wikipedia (Hindu lunisolar calendar)",
+      "source_title": "Raksha Bandhan",
+      "source_url": "https://en.wikipedia.org/wiki/Raksha_Bandhan",
+      "year": 2026,
+      "confidence": "high",
+      "use_in_ui": [
+        "income_calendar"
+      ],
+      "notes": "Festival dates shift yearly. Do not hardcode without checking.",
+      "url_check": "verified"
+    },
+    {
+      "id": "E27",
+      "claim": "Occasion-driven demand spikes",
+      "value": "Brands report a 10-30% demand surge depending on the scale of the occasion",
+      "unit": "percent",
+      "source_org": "Inc42 (brand founder quoted)",
+      "source_title": "Quick Commerce and India's Micro Festival Boom",
+      "source_url": "https://inc42.com/features/quick-commerce-indias-micro-festival-boom/",
+      "year": 2026,
+      "confidence": "medium",
+      "use_in_ui": [
+        "festival_model"
+      ],
+      "notes": "Good calibration range for minor festivals and events.",
+      "url_check": "verified"
+    },
+    {
+      "id": "E28",
+      "claim": "National earnings context",
+      "value": "PLFS Jan-Dec 2025: self-employed Rs 12,144/month average; casual workers Rs 11,550 per 30 days",
+      "unit": "INR/month",
+      "source_org": "Periodic Labour Force Survey, MoSPI",
+      "source_title": "PLFS 2026 report",
+      "source_url": "https://en.wikipedia.org/wiki/Income_in_India",
+      "year": 2026,
+      "confidence": "high",
+      "use_in_ui": [
+        "income_baseline"
+      ],
+      "notes": "Benchmark to show the persona is not an outlier downward.",
+      "url_check": "verified"
+    },
+    {
+      "id": "E29",
+      "claim": "Gig-worker demographics",
+      "value": "64% of India's gig workers are aged 24-38; Delhi among the largest hubs",
+      "unit": "percent",
+      "source_org": "Assocham-Primus Partners study",
+      "source_title": "Cited via Outlook Business",
+      "source_url": "https://www.outlookbusiness.com/news/pay-education-demographics-what-the-numbers-say-about-indias-1-crore-gig-workers",
+      "year": 2021,
+      "confidence": "medium",
+      "use_in_ui": [
+        "persona_justification"
+      ],
+      "notes": "Justifies the Arjun persona age band.",
+      "url_check": "verified"
+    },
+    {
+      "id": "E30",
+      "claim": "Policy view on gig income instability",
+      "value": "Economic Survey flagged that India's gig economy rests on unstable work; NITI Aayog projects low-skilled gig work at 33.8% of the gig workforce by 2030",
+      "unit": "qualitative",
+      "source_org": "Economic Survey, via Forbes India",
+      "source_title": "Economic Survey coverage",
+      "source_url": "https://www.forbesindia.com/article/budget-2026/economic-survey-warns-indias-booming-gig-economy-rests-on-unstable-work/2990824/1",
+      "year": 2026,
+      "confidence": "high",
+      "use_in_ui": [
+        "landing_page_problem"
+      ],
+      "notes": "Instability, not low pay alone, is the framed problem. This is your thesis.",
+      "url_check": "verified"
+    }
+  ]
+}
