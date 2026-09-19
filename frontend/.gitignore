@@ -1,0 +1,11 @@
+node_modules
+dist
+dist-ssr
+.env
+*.local
+*.log
+.DS_Thumbs
+.vscode/*
+!.vscode/extensions.json
+.idea
+tsconfig.tsbuildinfo
