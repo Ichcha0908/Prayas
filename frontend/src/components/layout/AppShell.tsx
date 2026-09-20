@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { NavLink, Outlet, useLocation } from 'react-router-dom';
+import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
   CalendarDays,
@@ -7,6 +7,7 @@ import {
   FlaskConical,
   LayoutDashboard,
   Lightbulb,
+  MapPin,
   MessageSquare,
   TrendingUp,
   Wallet,
@@ -14,6 +15,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/cn';
 import { useAppData } from '@/hooks/useAppData';
+import { useLocation as useSelectedCity } from '@/hooks/useLocation';
 import { Badge } from '@/components/ui';
 import { Copilot } from '@/features/copilot/Copilot';
 import { ScenarioBar } from './ScenarioBar';
@@ -32,13 +34,20 @@ const MOBILE_NAV = [NAV[0], NAV[1], NAV[2], NAV[3], NAV[5]];
 
 export function AppShell() {
   const { user, scenarios } = useAppData();
+  const { selectedCity, resetLocation } = useSelectedCity();
   const [copilotOpen, setCopilotOpen] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
 
   // Scroll to top on route change — long pages otherwise keep their offset.
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior });
   }, [location.pathname]);
+
+  function changeLocation() {
+    resetLocation();
+    navigate('/login');
+  }
 
   const profile = user.data?.profile;
 
@@ -133,6 +142,17 @@ export function AppShell() {
           </div>
 
           <div className="flex items-center gap-2">
+            {selectedCity ? (
+              <button
+                type="button"
+                onClick={changeLocation}
+                className="focus-ring hidden items-center gap-1.5 rounded-lg border border-canvas-line px-2.5 py-1.5 text-xs font-500 text-ink-muted transition-colors hover:border-brand-400/40 hover:text-ink-soft sm:flex"
+                title="Change your city — updates the real weather and fuel price behind the forecast"
+              >
+                <MapPin className="h-3.5 w-3.5" aria-hidden />
+                {selectedCity.label}
+              </button>
+            ) : null}
             {scenarios.length ? (
               <Badge tone="warn" className="hidden sm:inline-flex">
                 <FlaskConical className="h-3 w-3" aria-hidden />

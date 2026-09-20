@@ -49,8 +49,11 @@ BACKEND_ORIGIN=http://localhost:9000 npm run dev
 | `src/api/mock/engine.ts` | Synthetic data + the forecasting model |
 | `src/data/weather-delhi-ncr.json` | Real historical weather (see below) |
 | `scripts/fetch-weather.mjs` | Refreshes the real weather file |
-| `src/data/fuel-price-delhi.json` | Real petrol/diesel price (see below) |
+| `src/data/fuel-price-by-city.json` | Real petrol/diesel price for all 4 supported cities |
 | `src/data/plfs-urban-workforce-india.json` | Real national workforce data (see below) |
+| `src/lib/locations.ts` | The 4 supported cities: coordinates, zone labels, localStorage |
+| `src/hooks/useLocation.tsx` | Location context — selection, persistence, change |
+| `src/pages/Login.tsx` | The location-selection entry gate |
 | `src/data/evidence-sources.json` | 30 cited claims backing the model calibration and landing-page copy (see root README's Evidence base section) |
 | `src/api/mock/handlers.ts` | Reference implementation of all 9 endpoints |
 | `src/hooks/useAppData.tsx` | App-wide data + the scenario overlay |
@@ -106,23 +109,54 @@ logged warning (never a thrown error) if the fetch fails. Days beyond 16 out,
 and the calendar's much longer 60-day view, correctly stay synthetic — no
 provider forecasts weather that far out with real skill.
 
-## Real fuel price data
+## Location selection
 
-`src/data/fuel-price-delhi.json` holds the real Delhi retail petrol and diesel
-price from [PPAC](https://ppac.gov.in) (Petroleum Planning & Analysis Cell,
-Ministry of Petroleum & Natural Gas) — ₹102.12/litre petrol as of this
-writing, confirmed flat for at least 96 consecutive days in PPAC's own daily
-bulletin. `engine.ts` derives each driver's daily fuel cost from this real
-price times a documented city-mileage assumption (`estimateDailyFuelCost`),
-rather than a guessed rupee figure. The stress test's fuel-cost scenario cites
-the real price directly: *"Petrol in Delhi is ₹102.12/litre today (PPAC). A
-15% rise would put it near ₹117.44/litre."*
+Before reaching `/app`, every visitor picks a city on `/login` — Delhi NCR,
+Mumbai, Chennai or Kolkata. This is deliberately **not** a real login (this
+product's own ethics section rules out fake credentials): it's the one thing
+the demo genuinely needs, since it decides which city's real weather and real
+fuel price feed the forecast from that point on. The choice persists to
+`localStorage`, and `/app/*` redirects back to `/login` if none is stored.
+
+The four cities are exactly the ones PPAC's daily fuel bulletin covers — see
+below — so every price shown is real and checked, never a same-country
+approximation for a city with no source behind it. Coordinates are each
+city's IMD reference observatory (Safdarjung, Santacruz, Nungambakkam,
+Alipore — `src/lib/locations.ts`), matching the convention already used for
+Delhi. Selecting a city does not generate a different persona: Arjun's income
+pattern, expenses and history stay the same everywhere — only the
+location-derived inputs (weather, fuel price, the city/zone label) change.
+Switching city later, via the header's location button, triggers a full
+refetch of every page against the new city and clears the previous city's
+cached live-weather data so nothing stale bleeds through.
+
+Historical weather for Delhi still uses the committed snapshot (no network
+round trip); the other three cities have no such file — committing one per
+city would mean maintaining several going stale at different rates — so their
+history is fetched live from the same ERA5 archive endpoint, once per
+session, exactly like the live forecast already was.
+
+### Real fuel price data
+
+`src/data/fuel-price-by-city.json` holds the real retail petrol and diesel
+price for all four supported cities, from [PPAC](https://ppac.gov.in)
+(Petroleum Planning & Analysis Cell, Ministry of Petroleum & Natural Gas) —
+₹102.12/litre in Delhi as of this writing, confirmed flat for at least 96
+consecutive days in PPAC's own daily bulletin, alongside Mumbai (₹111.21),
+Chennai (₹107.77) and Kolkata (₹113.51). `engine.ts` derives each driver's
+daily fuel cost from whichever price matches the selected city, times a
+documented city-mileage assumption (`estimateDailyFuelCost`), rather than a
+guessed rupee figure. The stress test's fuel-cost scenario cites the real
+price for the selected city directly: *"Petrol in Mumbai is ₹111.21/litre
+today (PPAC). A 15% rise would put it near ₹127.89/litre."*
 
 Unlike weather, there is **no automated refresh script** for this one — PPAC
 publishes no API or downloadable table, only a same-day-dated PDF whose
-filename isn't predictable in advance. The JSON file documents exactly how to
-refresh it by hand, and says so rather than shipping a scraper that would
-silently break the next time PPAC renames a file.
+filename isn't predictable in advance, and it's also the reason the location
+picker stops at four cities: that bulletin covers exactly these four and no
+others. The JSON file documents exactly how to refresh it by hand, and says
+so rather than shipping a scraper that would silently break the next time
+PPAC renames a file.
 
 ## Real workforce data (PLFS)
 

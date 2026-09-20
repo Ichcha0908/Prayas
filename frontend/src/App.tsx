@@ -2,9 +2,11 @@ import { Component, type ErrorInfo, type ReactNode } from 'react';
 import { Link, Navigate, Route, BrowserRouter as Router, Routes } from 'react-router-dom';
 import { AlertTriangle } from 'lucide-react';
 import { AppDataProvider } from '@/hooks/useAppData';
+import { LocationProvider, useLocation } from '@/hooks/useLocation';
 import { AppShell } from '@/components/layout/AppShell';
 import { Button } from '@/components/ui';
 import { Landing } from '@/pages/Landing';
+import { Login } from '@/pages/Login';
 import { Dashboard } from '@/pages/Dashboard';
 import { Forecast } from '@/pages/Forecast';
 import { Cashflow } from '@/pages/Cashflow';
@@ -45,6 +47,13 @@ class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | 
   }
 }
 
+/** Sends a visitor who hasn't picked a city yet to /login before /app. */
+function RequireLocation({ children }: { children: ReactNode }) {
+  const { selectedCity } = useLocation();
+  if (!selectedCity) return <Navigate to="/login" replace />;
+  return children;
+}
+
 function NotFound() {
   return (
     <div className="flex min-h-[60vh] flex-col items-center justify-center text-center">
@@ -64,26 +73,31 @@ export default function App() {
   return (
     <ErrorBoundary>
       <Router>
-        <Routes>
-          <Route path="/" element={<Landing />} />
-          <Route
-            path="/app"
-            element={
-              <AppDataProvider>
-                <AppShell />
-              </AppDataProvider>
-            }
-          >
-            <Route index element={<Dashboard />} />
-            <Route path="forecast" element={<Forecast />} />
-            <Route path="cashflow" element={<Cashflow />} />
-            <Route path="stress-test" element={<StressTest />} />
-            <Route path="calendar" element={<IncomeCalendar />} />
-            <Route path="insights" element={<Insights />} />
-            <Route path="*" element={<NotFound />} />
-          </Route>
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
+        <LocationProvider>
+          <Routes>
+            <Route path="/" element={<Landing />} />
+            <Route path="/login" element={<Login />} />
+            <Route
+              path="/app"
+              element={
+                <RequireLocation>
+                  <AppDataProvider>
+                    <AppShell />
+                  </AppDataProvider>
+                </RequireLocation>
+              }
+            >
+              <Route index element={<Dashboard />} />
+              <Route path="forecast" element={<Forecast />} />
+              <Route path="cashflow" element={<Cashflow />} />
+              <Route path="stress-test" element={<StressTest />} />
+              <Route path="calendar" element={<IncomeCalendar />} />
+              <Route path="insights" element={<Insights />} />
+              <Route path="*" element={<NotFound />} />
+            </Route>
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </LocationProvider>
       </Router>
     </ErrorBoundary>
   );

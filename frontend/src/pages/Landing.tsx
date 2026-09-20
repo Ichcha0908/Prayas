@@ -81,7 +81,7 @@ export function Landing() {
             >
               How it works
             </a>
-            <Link to="/app">
+            <Link to="/login">
               <Button variant="primary" size="sm" iconRight={<ArrowRight className="h-3.5 w-3.5" aria-hidden />}>
                 Try the demo
               </Button>
@@ -118,7 +118,7 @@ export function Landing() {
             </p>
 
             <div className="mt-8 flex flex-wrap items-center gap-3">
-              <Link to="/app">
+              <Link to="/login">
                 <Button variant="primary" size="lg" iconRight={<ArrowRight className="h-4 w-4" aria-hidden />}>
                   Try the demo
                 </Button>
@@ -301,7 +301,7 @@ export function Landing() {
           <p className="mx-auto mt-4 max-w-lg text-sm leading-relaxed text-ink-muted">
             The demo loads Arjun, a delivery partner in Delhi NCR, with 14 months of synthetic earning history.
           </p>
-          <Link to="/app" className="mt-8 inline-block">
+          <Link to="/login" className="mt-8 inline-block">
             <Button variant="primary" size="lg" iconRight={<ArrowRight className="h-4 w-4" aria-hidden />}>
               Open the demo
             </Button>

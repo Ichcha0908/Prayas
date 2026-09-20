@@ -19,8 +19,9 @@
 
 import type { ISODate, WeatherCode } from '../types';
 import realWeatherFile from '../../data/weather-delhi-ncr.json';
-import realFuelPriceFile from '../../data/fuel-price-delhi.json';
 import plfsWorkforceFile from '../../data/plfs-urban-workforce-india.json';
+import fuelPriceByCityFile from '../../data/fuel-price-by-city.json';
+import { DEFAULT_CITY_ID, getCityById, type SupportedCity } from '../../lib/locations';
 
 /* -------------------------------------------------------------- primitives */
 
@@ -237,6 +238,35 @@ export function weatherLabel(code: WeatherCode): string {
 }
 
 /**
+ * The currently selected city. Module-level rather than threaded through
+ * every function signature: the call chains below (buildCore -> forecastDays
+ * -> generateWeather, several layers deep) are entirely synchronous by
+ * design, and only one city is ever "current" in a browser session, so
+ * adding a location parameter to dozens of call sites would buy nothing a
+ * single piece of session state doesn't already give for free.
+ */
+let CURRENT_CITY: SupportedCity = getCityById(DEFAULT_CITY_ID);
+
+export function getCurrentCity(): SupportedCity {
+  return CURRENT_CITY;
+}
+
+/**
+ * Switches which city's real weather and fuel price feed the app, and clears
+ * every live-fetch cache below so the next request re-fetches for the new
+ * location instead of quietly serving the previous city's cached weather.
+ */
+export function setCurrentCity(cityId: string): void {
+  if (cityId === CURRENT_CITY.id) return;
+  CURRENT_CITY = getCityById(cityId);
+  liveForecastLoadPromise = null;
+  LIVE_FORECAST_WEATHER = null;
+  liveHistoricalLoadPromise = null;
+  liveHistoricalCityId = null;
+  LIVE_HISTORICAL_WEATHER = null;
+}
+
+/**
  * Real historical weather for Delhi NCR (South Delhi — Saket), fetched from
  * Open-Meteo's ERA5 reanalysis archive by scripts/fetch-weather.mjs. Days not
  * covered by the file (the fetch script's lag window, and always the
@@ -258,8 +288,17 @@ const REAL_WEATHER: ReadonlyMap<ISODate, WeatherObs> = new Map(
   ]),
 );
 
+/**
+ * Delhi has a committed, pre-verified historical snapshot (above) — no
+ * network round trip needed. Every other supported city has no such file
+ * (committing one per city would mean maintaining several going stale at
+ * different rates), so its history is fetched live from the same ERA5
+ * archive endpoint the fetch script uses, once per session, and cached by
+ * loadLiveHistoricalWeather below.
+ */
 function realWeatherOn(iso: ISODate): WeatherObs | undefined {
-  return REAL_WEATHER.get(iso);
+  if (CURRENT_CITY.id === 'delhi') return REAL_WEATHER.get(iso);
+  return LIVE_HISTORICAL_WEATHER?.get(iso);
 }
 
 /**
@@ -283,9 +322,11 @@ function realWeatherOn(iso: ISODate): WeatherObs | undefined {
  * by falling back to the synthetic generator, exactly as it does for the
  * historical archive's own coverage gaps.
  */
-const LIVE_FORECAST_LATITUDE = 28.5245;
-const LIVE_FORECAST_LONGITUDE = 77.2065;
 const LIVE_FORECAST_DAYS = 16;
+/** Same archive reporting lag scripts/fetch-weather.mjs accounts for. */
+const LIVE_HISTORICAL_LAG_DAYS = 6;
+/** A little more than buildHistory's own HISTORY_DAYS window, for margin. */
+const LIVE_HISTORICAL_DAYS = 450;
 
 let LIVE_FORECAST_WEATHER: Map<ISODate, WeatherObs> | null = null;
 let liveForecastLoadPromise: Promise<void> | null = null;
@@ -322,8 +363,9 @@ function mapWmoWeatherCode(wmoCode: number, rainfallMm: number): WeatherCode {
 }
 
 async function fetchLiveForecastWeather(): Promise<Map<ISODate, WeatherObs>> {
+  const city = CURRENT_CITY;
   const url =
-    `https://api.open-meteo.com/v1/forecast?latitude=${LIVE_FORECAST_LATITUDE}&longitude=${LIVE_FORECAST_LONGITUDE}` +
+    `https://api.open-meteo.com/v1/forecast?latitude=${city.latitude}&longitude=${city.longitude}` +
     `&daily=weathercode,temperature_2m_max,temperature_2m_min,precipitation_sum` +
     `&forecast_days=${LIVE_FORECAST_DAYS}&timezone=Asia%2FKolkata`;
 
@@ -384,6 +426,72 @@ export function loadLiveForecastWeather(): Promise<void> {
 
 function liveWeatherOn(iso: ISODate): WeatherObs | undefined {
   return LIVE_FORECAST_WEATHER?.get(iso);
+}
+
+let LIVE_HISTORICAL_WEATHER: Map<ISODate, WeatherObs> | null = null;
+let liveHistoricalLoadPromise: Promise<void> | null = null;
+let liveHistoricalCityId: string | null = null;
+
+async function fetchLiveHistoricalWeather(city: SupportedCity): Promise<Map<ISODate, WeatherObs>> {
+  const end = addDays(today(), -LIVE_HISTORICAL_LAG_DAYS);
+  const start = addDays(today(), -LIVE_HISTORICAL_DAYS);
+  const url =
+    `https://archive-api.open-meteo.com/v1/archive?latitude=${city.latitude}&longitude=${city.longitude}` +
+    `&start_date=${toISO(start)}&end_date=${toISO(end)}` +
+    `&daily=weathercode,temperature_2m_max,temperature_2m_min,precipitation_sum&timezone=Asia%2FKolkata`;
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 8000);
+  let res: Response;
+  try {
+    res = await fetch(url, { signal: controller.signal });
+  } finally {
+    clearTimeout(timeout);
+  }
+  if (!res.ok) throw new Error(`Open-Meteo archive request failed: ${res.status}`);
+
+  const body = (await res.json()) as OpenMeteoForecastResponse;
+  const daily = body.daily;
+  if (!daily?.time?.length) throw new Error('Open-Meteo archive response had no daily data');
+
+  const map = new Map<ISODate, WeatherObs>();
+  for (let i = 0; i < daily.time.length; i += 1) {
+    const rainfallMm = Math.round((daily.precipitation_sum[i] ?? 0) * 10) / 10;
+    const code = mapWmoWeatherCode(daily.weathercode[i], rainfallMm);
+    const tMax = daily.temperature_2m_max[i];
+    const tMin = daily.temperature_2m_min[i];
+    map.set(daily.time[i], { code, label: weatherLabel(code), rainfallMm, tempC: Math.round((tMax + tMin) / 2) });
+  }
+  return map;
+}
+
+/**
+ * Delhi's history comes from the committed file above and never calls this.
+ * Every other city fetches its historical archive live, once per session —
+ * re-keyed automatically if setCurrentCity switches to a different non-Delhi
+ * city mid-session, since that resets liveHistoricalCityId to null.
+ */
+export function loadLiveHistoricalWeather(): Promise<void> {
+  if (CURRENT_CITY.id === 'delhi') return Promise.resolve();
+  if (liveHistoricalCityId !== CURRENT_CITY.id) {
+    liveHistoricalLoadPromise = null;
+    liveHistoricalCityId = CURRENT_CITY.id;
+  }
+  if (!liveHistoricalLoadPromise) {
+    const city = CURRENT_CITY;
+    liveHistoricalLoadPromise = fetchLiveHistoricalWeather(city)
+      .then((map) => {
+        LIVE_HISTORICAL_WEATHER = map;
+      })
+      .catch((err) => {
+        console.warn(
+          `[kamai] Live historical weather unavailable for ${city.label}, history will use the synthetic weather generator instead:`,
+          err,
+        );
+        LIVE_HISTORICAL_WEATHER = null;
+      });
+  }
+  return liveHistoricalLoadPromise;
 }
 
 function generateWeather(date: Date, rng: () => number): WeatherObs {
@@ -463,28 +571,36 @@ export interface DriverSpec {
 }
 
 /**
- * Real Delhi retail petrol price, from PPAC (Ministry of Petroleum & Natural
- * Gas) — see src/data/fuel-price-delhi.json for the source, bulletin and
- * fetch date. Daily fuel cost is derived from this real price rather than
- * guessed as a flat rupee figure, using two documented assumptions:
+ * Real per-city retail petrol price, from PPAC (Ministry of Petroleum &
+ * Natural Gas) — see src/data/fuel-price-by-city.json for the source,
+ * bulletin and fetch date. Daily fuel cost is derived from this real price
+ * rather than guessed as a flat rupee figure, using two documented
+ * assumptions:
  *
  *   - CITY_KM_PER_LITRE: real-world stop-and-go delivery mileage for a
  *     110-125cc two-wheeler, well below its highway-rated efficiency
  *     (typically 45-50 km/l rated vs. ~35-40 km/l in dense city traffic).
  *   - dailyDistanceKm: total distance covered in a working shift.
  *
- * Only Delhi pricing is available (PPAC's daily bulletin covers Delhi,
- * Mumbai, Chennai and Kolkata), so it is used as the baseline for every
- * synthetic driver regardless of city — a reasonable proxy given fuel
- * pricing does not vary enormously across major Indian metros.
+ * PPAC's daily bulletin covers exactly the four cities in that file, which is
+ * why the location picker is limited to them — every price here is checked,
+ * none is a same-country approximation for a city PPAC doesn't publish.
  */
-export const REAL_PETROL_PRICE_PER_LITRE: number = (realFuelPriceFile as { petrol_price_per_litre: number })
-  .petrol_price_per_litre;
+interface FuelPriceByCityFile {
+  cities: Record<string, { label: string; petrol_price_per_litre: number; diesel_price_per_litre: number }>;
+}
+
+/** Reads live off CURRENT_CITY — never frozen at module load, so switching
+ * city changes the price the very next time anything asks for it. */
+export function getRealPetrolPricePerLitre(): number {
+  const cities = (fuelPriceByCityFile as FuelPriceByCityFile).cities;
+  return cities[CURRENT_CITY.id]?.petrol_price_per_litre ?? cities.delhi.petrol_price_per_litre;
+}
 
 const CITY_KM_PER_LITRE = 38;
 
 function estimateDailyFuelCost(dailyDistanceKm: number): number {
-  return Math.round((dailyDistanceKm / CITY_KM_PER_LITRE) * REAL_PETROL_PRICE_PER_LITRE);
+  return Math.round((dailyDistanceKm / CITY_KM_PER_LITRE) * getRealPetrolPricePerLitre());
 }
 
 /**
@@ -518,8 +634,8 @@ export function buildDriverSpec(driverId: string): DriverSpec {
     return {
       driverId,
       name: 'Arjun',
-      city: 'Delhi NCR',
-      zone: 'South Delhi — Saket cluster',
+      city: CURRENT_CITY.label,
+      zone: CURRENT_CITY.zone,
       experienceYears: 3,
       typicalWorkingDays: 6,
       baseDailyIncome: 1300,

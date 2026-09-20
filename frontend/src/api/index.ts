@@ -21,11 +21,30 @@ import type {
   StressTestResponse,
   UserResponse,
 } from './types';
-import { loadLiveForecastWeather, NEUTRAL_CONTEXT, type ForecastContext } from './mock/engine';
+import {
+  getCurrentCity,
+  loadLiveForecastWeather,
+  loadLiveHistoricalWeather,
+  NEUTRAL_CONTEXT,
+  setCurrentCity,
+  type ForecastContext,
+} from './mock/engine';
 import * as mock from './mock/handlers';
+import { SUPPORTED_CITIES, type SupportedCity } from '../lib/locations';
 
 export * from './types';
 export { ApiError, DEMO_DRIVER_ID, DATA_SOURCE } from './client';
+export { SUPPORTED_CITIES, type SupportedCity };
+
+/**
+ * Location control. A real backend would take this as a parameter on the
+ * driver's profile or a query param on each request; the mock engine keeps it
+ * as session state (see engine.ts's CURRENT_CITY doc comment for why), so
+ * these two functions are the seam between "the UI changed the location" and
+ * "the engine now generates data for it".
+ */
+export const getCurrentLocation = (): SupportedCity => getCurrentCity();
+export const setLocation = (cityId: string): void => setCurrentCity(cityId);
 
 /**
  * Scenario overlays travel to the live backend as a repeated query parameter
@@ -52,7 +71,7 @@ function contextFromScenarios(scenarios: ScenarioKey[] = []): ForecastContext {
  * regardless of how many endpoints call it.
  */
 async function runFallback<T>(fallback: () => T): Promise<T> {
-  await loadLiveForecastWeather();
+  await Promise.all([loadLiveForecastWeather(), loadLiveHistoricalWeather()]);
   return fallback();
 }
 

@@ -10,6 +10,7 @@ import type {
   UserResponse,
 } from '@/api/types';
 import { useAsync, type AsyncState } from './useAsync';
+import { useLocation } from './useLocation';
 
 /**
  * App-wide data + the scenario overlay.
@@ -41,6 +42,13 @@ const AppDataContext = createContext<AppDataValue | null>(null);
 
 export function AppDataProvider({ children }: { children: ReactNode }) {
   const driverId = DEMO_DRIVER_ID;
+  const { selectedCity } = useLocation();
+  // AppDataProvider only ever renders inside <RequireLocation>, which
+  // already redirects to /login when no city is chosen — this id is
+  // included in every fetch's dependency list purely so switching cities
+  // (via the sidebar's "Change" control) triggers a full refetch of every
+  // endpoint against the newly selected city's weather and fuel price.
+  const cityId = selectedCity?.id ?? 'unset';
   const [scenarios, setScenarios] = useState<ScenarioKey[]>([]);
   const [cashflowHorizon, setCashflowHorizon] = useState<7 | 14>(7);
 
@@ -52,22 +60,22 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
 
   const clearScenarios = useCallback(() => setScenarios([]), []);
 
-  const user = useAsync((signal) => api.getUser(driverId, { signal }), [driverId]);
+  const user = useAsync((signal) => api.getUser(driverId, { signal }), [driverId, cityId]);
   const forecast = useAsync(
     (signal) => api.getForecast(driverId, { signal, scenarios }),
-    [driverId, scenarioKey],
+    [driverId, cityId, scenarioKey],
   );
   const cashflow = useAsync(
     (signal) => api.getCashflow(driverId, cashflowHorizon, { signal, scenarios }),
-    [driverId, scenarioKey, cashflowHorizon],
+    [driverId, cityId, scenarioKey, cashflowHorizon],
   );
-  const risk = useAsync((signal) => api.getRisk(driverId, { signal, scenarios }), [driverId, scenarioKey]);
+  const risk = useAsync((signal) => api.getRisk(driverId, { signal, scenarios }), [driverId, cityId, scenarioKey]);
   const resilience = useAsync(
     (signal) => api.getResilience(driverId, { signal, scenarios }),
-    [driverId, scenarioKey],
+    [driverId, cityId, scenarioKey],
   );
-  const calendar = useAsync((signal) => api.getCalendar(driverId, { signal }), [driverId]);
-  const insights = useAsync((signal) => api.getInsights(driverId, { signal }), [driverId]);
+  const calendar = useAsync((signal) => api.getCalendar(driverId, { signal }), [driverId, cityId]);
+  const insights = useAsync((signal) => api.getInsights(driverId, { signal }), [driverId, cityId]);
 
   const value = useMemo<AppDataValue>(
     () => ({

@@ -45,8 +45,11 @@ npm install
 npm run dev          # http://localhost:5173
 ```
 
-No backend, no accounts, no API keys. The demo loads Arjun, a delivery partner
-in Delhi NCR, with 14 months of synthetic earning history.
+No backend, no API keys, and nothing that resembles a real account — the one
+thing it asks is which of four cities you're in (a location picker, not a
+login), since that decides which city's real weather and fuel price drive the
+forecast. The demo loads Arjun, a delivery partner, with 14 months of
+synthetic earning history.
 
 ```bash
 npm run build        # production build
@@ -58,22 +61,29 @@ npm run typecheck    # tsc, no emit
 
 ## The demo, in 90 seconds
 
-1. **Landing page** → *Try the demo*.
-2. **Dashboard.** Expected 7-day income ₹7,368 against a normal ₹8,251, with
-   shortfall risk at 66% (High). Hit **Why?** — the explanation is a ranked list
-   of measured features, not "the AI detected a pattern".
-3. **Signature demo.** In the header, click **Simulate Diwali**. Every page
-   recomputes: risk falls 66% → 20%, forecast income rises to ₹9,111. Now click
-   **Simulate Rain Shock** on top of it — risk lands at **41%**, versus **84%**
-   for the rain shock alone. That difference *is* the product: the stronger
-   Diwali week absorbs part of the rain-related shock.
+Exact figures below vary by which city you pick and today's actual weather —
+both are now real and live, not fixed fixtures — so treat the numbers as
+illustrative of the shape of the demo, not a literal script.
+
+1. **Landing page** → *Try the demo* → pick a city (Delhi NCR, Mumbai, Chennai
+   or Kolkata) on the location screen.
+2. **Dashboard.** A 7-day income forecast against a "normal" week, with a
+   shortfall-risk band. Hit **Why?** — the explanation is a ranked list of
+   measured features, not "the AI detected a pattern".
+3. **Signature demo.** In the header, click **Simulate Diwali** — risk falls,
+   forecast income rises. Now click **Simulate Rain Shock** on top of it — risk
+   rises again, but by less than the rain shock alone would cause. That gap
+   *is* the product: the stronger Diwali week absorbs part of the rain-related
+   shock.
 4. **Cashflow.** Day-by-day balance against the buffer line, with the trough
    called out and the days carrying a fixed payment marked.
-5. **Stress Test.** *₹5,000 emergency* → risk High 66% → Critical 91%, ending
-   balance ₹6,736 → ₹1,736. Then **+2h Saturday** recovers it to 87% / ₹2,037.
-6. **Income Calendar.** Diwali shows **+24%**, measured from 7 observations in
-   this driver's own history — the number is never hardcoded.
+5. **Stress Test.** Add a ₹5,000 emergency expense — risk band worsens, ending
+   balance drops. Add **+2h Saturday** and watch it partially recover.
+6. **Income Calendar.** Diwali shows a measured uplift (not hardcoded) from
+   this driver's own history, typically in the 20-30% range.
 7. **Ask Kamai** (sidebar). Every answer is computed from the data on screen.
+8. **Header → your city name.** Click it to change location — every page
+   refetches against the new city's real weather and fuel price.
 
 ---
 
@@ -373,8 +383,22 @@ synthetic test data"*.
 **Known limitations**
 
 - All data is synthetic. Nothing here has been validated against real earnings.
-- Historical weather is real (Open-Meteo ERA5); the forward-looking forecast window still uses a synthetic generator, since no forecast-weather provider is wired in yet.
-- Festival dates are approximate and cover 2025–2027 only.
+- Weather is real end to end — historical (Open-Meteo ERA5) and the next 16
+  days of forecast (Open-Meteo's forecast API) — for whichever of the four
+  supported cities is selected. Only the days beyond that 16-day reach, and
+  the calendar's much longer 60-day view, use the synthetic generator.
+- Location changes weather, fuel price and the displayed city/zone only.
+  Rent, EMI, food and family expenses stay at their Delhi-calibrated values
+  regardless of which city is selected — a real simplification, not an
+  oversight: those would need their own per-city sourcing to vary honestly,
+  and none was done here.
+- The synthetic weather generator (used only as a fallback when a live fetch
+  fails) applies Delhi-style monsoon seasonality regardless of selected city,
+  so a fallback day in Chennai — which has a materially different rain
+  season — won't look meteorologically right. The real-data path, which is
+  what actually renders in normal use, does not have this problem.
+- Festival dates are approximate, pan-India rather than city-specific, and
+  cover 2025–2027 only.
 - Relationships (rain, festivals, weekdays) are measured from one synthetic
   driver's history and must not be read as general claims about delivery work.
 - The in-browser engine is a statistical forecaster, not a trained model. It

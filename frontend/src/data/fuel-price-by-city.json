@@ -1,0 +1,15 @@
+{
+  "source": "Petroleum Planning & Analysis Cell (PPAC), Ministry of Petroleum & Natural Gas, Government of India",
+  "source_page": "https://ppac.gov.in/retail-selling-price-rsp-of-petrol-diesel-and-domestic-lpg/rsp-of-petrol-and-diesel-in-metro-cities-since-16-6-2017",
+  "bulletin_pdf": "https://ppac.gov.in/download.php?file=importantnews/1789623377_PP_9_a_DailyPriceMSHSD_Metro_17.09.2026.pdf",
+  "fetched_at": "2026-09-20T00:00:00+05:30",
+  "price_as_of": "2026-09-17",
+  "note": "PPAC's daily bulletin covers exactly these four metro cities and no others, which is why the location picker is limited to them rather than offering an arbitrary city list with guessed prices. PPAC publishes no API or CSV for this series, only a same-day-dated PDF whose filename isn't predictable in advance — refresh by hand: open source_page, download that day's bulletin, update the four cities below.",
+  "currency": "INR",
+  "cities": {
+    "delhi": { "label": "Delhi NCR", "petrol_price_per_litre": 102.12, "diesel_price_per_litre": 95.20 },
+    "mumbai": { "label": "Mumbai", "petrol_price_per_litre": 111.21, "diesel_price_per_litre": 97.83 },
+    "chennai": { "label": "Chennai", "petrol_price_per_litre": 107.77, "diesel_price_per_litre": 99.55 },
+    "kolkata": { "label": "Kolkata", "petrol_price_per_litre": 113.51, "diesel_price_per_litre": 99.82 }
+  }
+}

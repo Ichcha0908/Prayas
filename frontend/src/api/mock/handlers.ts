@@ -53,7 +53,7 @@ import {
   normalCdf,
   obligationsInRange,
   percentile,
-  REAL_PETROL_PRICE_PER_LITRE,
+  getRealPetrolPricePerLitre,
   summariseHistory,
   toISO,
   today,
@@ -1057,14 +1057,15 @@ export function postStressTest(req: StressTestRequest): StressTestResponse {
 
   if (req.fuel_cost_increase_pct > 0.005) {
     const delta = scenario.projected_expenses - baseline.projected_expenses;
-    const projectedPrice = REAL_PETROL_PRICE_PER_LITRE * (1 + req.fuel_cost_increase_pct);
+    const currentPrice = getRealPetrolPricePerLitre();
+    const projectedPrice = currentPrice * (1 + req.fuel_cost_increase_pct);
     drivers.push({
       key: 'scenario_fuel',
       label: `Fuel cost up ${(req.fuel_cost_increase_pct * 100).toFixed(0)}%`,
       impact_amount: -Math.max(0, delta),
       impact_pct: -req.fuel_cost_increase_pct,
       direction: 'decrease',
-      explanation: `Petrol in Delhi is ₹${REAL_PETROL_PRICE_PER_LITRE.toFixed(2)}/litre today (PPAC). A ${(req.fuel_cost_increase_pct * 100).toFixed(0)}% rise would put it near ₹${projectedPrice.toFixed(2)}/litre, raising outflow on every working day.`,
+      explanation: `Petrol in ${baseCore.spec.city} is ₹${currentPrice.toFixed(2)}/litre today (PPAC). A ${(req.fuel_cost_increase_pct * 100).toFixed(0)}% rise would put it near ₹${projectedPrice.toFixed(2)}/litre, raising outflow on every working day.`,
       evidence: 'scenario',
     });
   }
