@@ -53,7 +53,8 @@ BACKEND_ORIGIN=http://localhost:9000 npm run dev
 | `src/data/plfs-urban-workforce-india.json` | Real national workforce data (see below) |
 | `src/lib/locations.ts` | The 4 supported cities: coordinates, zone labels, localStorage |
 | `src/hooks/useLocation.tsx` | Location context — selection, persistence, change |
-| `src/pages/Login.tsx` | The location-selection entry gate |
+| `src/hooks/useCommitments.tsx` | Name + loans/goals context — the optional step 3 |
+| `src/pages/Login.tsx` | The 3-step entry gate: name, city, loans/goals |
 | `src/data/evidence-sources.json` | 30 cited claims backing the model calibration and landing-page copy (see root README's Evidence base section) |
 | `src/api/mock/handlers.ts` | Reference implementation of all 9 endpoints |
 | `src/hooks/useAppData.tsx` | App-wide data + the scenario overlay |
@@ -109,14 +110,21 @@ logged warning (never a thrown error) if the fetch fails. Days beyond 16 out,
 and the calendar's much longer 60-day view, correctly stay synthetic — no
 provider forecasts weather that far out with real skill.
 
-## Location selection
+## Onboarding: name, location, loans & goals
 
-Before reaching `/app`, every visitor picks a city on `/login` — Delhi NCR,
-Mumbai, Chennai or Kolkata. This is deliberately **not** a real login (this
-product's own ethics section rules out fake credentials): it's the one thing
-the demo genuinely needs, since it decides which city's real weather and real
-fuel price feed the forecast from that point on. The choice persists to
-`localStorage`, and `/app/*` redirects back to `/login` if none is stored.
+Before reaching `/app`, every visitor goes through a 3-step `/login`: a
+display name, a city, and an entirely optional third step for loans and
+savings goals. This is deliberately **not** a real login (this product's own
+ethics section rules out fake credentials) — steps 1 and 2 are the minimum the
+demo needs to personalise anything, and step 3 exists because a resilience
+buffer that ignores a driver's actual EMIs and goals is answering a smaller
+question than the one they actually have. All three persist to `localStorage`
+(`kamai.selectedCityId`, `kamai.commitments`), and `/app/*` redirects back to
+`/login` if the name or city is missing.
+
+### Step 2: location
+
+Delhi NCR, Mumbai, Chennai or Kolkata.
 
 The four cities are exactly the ones PPAC's daily fuel bulletin covers — see
 below — so every price shown is real and checked, never a same-country
@@ -135,6 +143,39 @@ round trip); the other three cities have no such file — committing one per
 city would mean maintaining several going stale at different rates — so their
 history is fetched live from the same ERA5 archive endpoint, once per
 session, exactly like the live forecast already was.
+
+### Step 3: loans, EMIs & goals (optional)
+
+Up to three loans and three goals, added inline during onboarding with a
+"Skip for now" always sitting next to "Finish." A loan is a label, an EMI
+amount, a due day of month and an optional end date; a goal is a label, a
+target amount, a target date and how much is already saved. Both flow
+straight into computation, not just storage:
+
+- **Loans become obligations.** `obligationSpecs()` in `engine.ts` appends
+  each active loan (filtered by `end_date`) alongside the built-in rent and
+  vehicle EMI, so they automatically reach the resilience buffer's
+  `fixed_obligations` component, the shortfall-probability calculation, the
+  Cashflow chart's obligation markers, and the calendar's "fixed payment due"
+  flags — one pipeline, not a parallel one to keep in sync.
+- **`GET /api/commitments/:id` assesses each loan against a real cashflow
+  projection**, not a separate estimate. `at_risk_of_default` is `true`
+  exactly when the projected closing balance on that loan's next due date is
+  negative — the same thing the Cashflow page's own chart would show as a dip
+  below zero. When true, the Dashboard shows a warning banner *before* the
+  date arrives, and Insights shows the exact shortfall.
+- **Each goal's pace is pro-rated by elapsed time**, not just "is the money
+  there": `expected_progress_amount = target × (days since created ÷ days to
+  target)`. A goal added five minutes ago always shows `on_track: true` —
+  correctly, since zero time has passed. `minimum_extra_to_maintain` is
+  framed as "hold this much, on top of your resilience buffer" rather than
+  folded into the buffer itself, since "can I survive a bad week" and "am I
+  on track for this goal" are different questions that shouldn't share one
+  number.
+
+Skipping this step leaves no trace in the UI — the Dashboard banner and the
+Insights "Loans, EMIs & goals" card both render nothing when there's nothing
+to show, rather than an empty state nobody asked to see.
 
 ### Real fuel price data
 

@@ -12,6 +12,7 @@ import type {
   CashflowResponse,
   ChatRequest,
   ChatResponse,
+  CommitmentsResponse,
   ForecastResponse,
   InsightsResponse,
   ResilienceResponse,
@@ -19,6 +20,8 @@ import type {
   ScenarioKey,
   StressTestRequest,
   StressTestResponse,
+  UserGoalInput,
+  UserLoanInput,
   UserResponse,
 } from './types';
 import {
@@ -27,6 +30,9 @@ import {
   loadLiveHistoricalWeather,
   NEUTRAL_CONTEXT,
   setCurrentCity,
+  setCurrentGoals,
+  setCurrentLoans,
+  setCurrentUserName,
   type ForecastContext,
 } from './mock/engine';
 import * as mock from './mock/handlers';
@@ -45,6 +51,16 @@ export { SUPPORTED_CITIES, type SupportedCity };
  */
 export const getCurrentLocation = (): SupportedCity => getCurrentCity();
 export const setLocation = (cityId: string): void => setCurrentCity(cityId);
+
+/**
+ * Onboarding control (name, loans, goals — steps 1 and 3 of /login). Same
+ * session-state seam as location: a real backend should persist these
+ * against the driver's profile (see the doc comment on UserLoanInput in
+ * types.ts) rather than treat them as demo-session-only data.
+ */
+export const setUserName = (name: string): void => setCurrentUserName(name);
+export const setLoans = (loans: UserLoanInput[]): void => setCurrentLoans(loans);
+export const setGoals = (goals: UserGoalInput[]): void => setCurrentGoals(goals);
 
 /**
  * Scenario overlays travel to the live backend as a repeated query parameter
@@ -139,6 +155,12 @@ export const api = {
     resolve<InsightsResponse>(
       () => http.get(`/api/insights/${driverId}`, opts),
       () => mock.getInsights(driverId),
+    ),
+
+  getCommitments: (driverId: string, opts: RequestOptions = {}) =>
+    resolve<CommitmentsResponse>(
+      () => http.get(`/api/commitments/${driverId}`, opts),
+      () => mock.getCommitments(driverId),
     ),
 
   postStressTest: (body: StressTestRequest, opts: RequestOptions = {}) =>

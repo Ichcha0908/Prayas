@@ -95,7 +95,7 @@ export interface Obligation {
   label: string;
   amount: number;
   due_date: ISODate;
-  category: 'rent' | 'emi' | 'utilities' | 'family' | 'other';
+  category: 'rent' | 'emi' | 'utilities' | 'family' | 'loan' | 'other';
   /** True when missing it has knock-on cost (late fee, service cut). */
   is_critical: boolean;
 }
@@ -461,5 +461,92 @@ export interface ChatResponse {
   /** Deep-link the UI turns into a button, e.g. "/cashflow". */
   suggested_route: string | null;
   follow_ups: string[];
+  meta: ResponseMeta;
+}
+
+/* ------------------------------------------- user-entered commitments ---
+ * Loans and goals a driver enters during onboarding (step 3, optional).
+ * These are genuinely persisted commitments, not a per-request scenario
+ * overlay: a real backend should hold them against the driver's profile
+ * (e.g. PATCH /api/user/:id/loans, /api/user/:id/goals) rather than treat
+ * them as session state the way this demo's mock engine does. See
+ * docs/API.md for the intended REST shape.
+ * ------------------------------------------------------------------------- */
+
+export interface UserLoanInput {
+  id: string;
+  /** e.g. "Personal loan", "Bike loan". */
+  label: string;
+  emi_amount: number;
+  /** 1-28, kept below month-end to avoid ambiguity in short months. */
+  due_day_of_month: number;
+  /** Once past this date the loan stops being counted as an obligation. */
+  end_date: ISODate | null;
+}
+
+export interface UserGoalInput {
+  id: string;
+  /** e.g. "Emergency fund", "New phone". */
+  label: string;
+  target_amount: number;
+  target_date: ISODate;
+  /** How much the driver has already set aside toward this goal. */
+  saved_so_far: number;
+  /** When the goal was created — the other end of the pacing calculation. */
+  created_date: ISODate;
+}
+
+/* --------------------------------------------------- GET /api/commitments/:id */
+
+export interface LoanAssessment {
+  id: string;
+  label: string;
+  emi_amount: number;
+  /** The next date this EMI is actually due, resolved from due_day_of_month. */
+  next_due_date: ISODate;
+  /** The literal minimum that must be in hand by next_due_date. */
+  minimum_to_maintain: number;
+  /** This driver's projected closing balance on next_due_date, EMI included. */
+  projected_balance_on_due_date: number;
+  /** True when the projection shows the balance going negative on that date. */
+  at_risk_of_default: boolean;
+  /** Only present when at_risk_of_default is true. */
+  projected_shortfall: number | null;
+  /** A plain-language early warning, or null when there's nothing to flag. */
+  warning: string | null;
+}
+
+export interface GoalAssessment {
+  id: string;
+  label: string;
+  target_amount: number;
+  target_date: ISODate;
+  saved_so_far: number;
+  days_remaining: number;
+  /** How much should already be saved by today if progressing on schedule. */
+  expected_progress_amount: number;
+  /** saved_so_far minus expected_progress_amount — negative means behind. */
+  progress_gap: number;
+  on_track: boolean;
+  /** What it takes from today to still hit the target by target_date. */
+  required_weekly_saving: number;
+  /**
+   * The amount to hold specifically for this goal, over and above the
+   * resilience buffer's survival minimum (which already accounts for any
+   * loan EMIs via the obligations pipeline). Equal to expected_progress_amount
+   * — framed as "you should be holding this much, earmarked, right now."
+   */
+  minimum_extra_to_maintain: number;
+}
+
+export interface CommitmentsResponse {
+  driver_id: string;
+  loans: LoanAssessment[];
+  goals: GoalAssessment[];
+  /** Sum of every loan's minimum_to_maintain due within the next 31 days. */
+  total_emi_minimum: number;
+  /** Sum of every goal's minimum_extra_to_maintain. */
+  total_goal_minimum: number;
+  any_default_risk: boolean;
   meta: ResponseMeta;
 }

@@ -35,6 +35,13 @@ export function parseISO(iso: ISODate): Date {
   return new Date(y, m - 1, d);
 }
 
+/** Today as YYYY-MM-DD in local time — never toISOString(), which is UTC and
+ * can shift the calendar date near a timezone boundary. */
+export function todayISO(): ISODate {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
 /** "12 Oct" */
 export function shortDate(iso: ISODate): string {
   const d = parseISO(iso);

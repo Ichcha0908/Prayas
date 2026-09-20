@@ -17,7 +17,7 @@
  * =============================================================================
  */
 
-import type { ISODate, WeatherCode } from '../types';
+import type { ISODate, UserGoalInput, UserLoanInput, WeatherCode } from '../types';
 import realWeatherFile from '../../data/weather-delhi-ncr.json';
 import plfsWorkforceFile from '../../data/plfs-urban-workforce-india.json';
 import fuelPriceByCityFile from '../../data/fuel-price-by-city.json';
@@ -264,6 +264,37 @@ export function setCurrentCity(cityId: string): void {
   liveHistoricalLoadPromise = null;
   liveHistoricalCityId = null;
   LIVE_HISTORICAL_WEATHER = null;
+}
+
+/**
+ * The driver's display name and any loans/goals entered at onboarding (step
+ * 1 and the optional step 3 of /login). Session state, same reasoning as
+ * CURRENT_CITY above: a real backend would persist these against the
+ * driver's profile rather than treat them as request-time or session-only
+ * data — see the doc comment on UserLoanInput/UserGoalInput in types.ts.
+ */
+let CURRENT_USER_NAME: string | null = null;
+let CURRENT_LOANS: UserLoanInput[] = [];
+let CURRENT_GOALS: UserGoalInput[] = [];
+
+export function setCurrentUserName(name: string): void {
+  CURRENT_USER_NAME = name.trim() || null;
+}
+
+export function setCurrentLoans(loans: UserLoanInput[]): void {
+  CURRENT_LOANS = loans;
+}
+
+export function setCurrentGoals(goals: UserGoalInput[]): void {
+  CURRENT_GOALS = goals;
+}
+
+export function getCurrentLoans(): UserLoanInput[] {
+  return CURRENT_LOANS;
+}
+
+export function getCurrentGoals(): UserGoalInput[] {
+  return CURRENT_GOALS;
 }
 
 /**
@@ -633,7 +664,7 @@ export function buildDriverSpec(driverId: string): DriverSpec {
   if (isDemo) {
     return {
       driverId,
-      name: 'Arjun',
+      name: CURRENT_USER_NAME ?? 'Arjun',
       city: CURRENT_CITY.label,
       zone: CURRENT_CITY.zone,
       experienceYears: 3,
@@ -1165,17 +1196,41 @@ export interface ObligationSpec {
   label: string;
   amount: number;
   dayOfMonth: number;
-  category: 'rent' | 'emi' | 'utilities' | 'family' | 'other';
+  category: 'rent' | 'emi' | 'utilities' | 'family' | 'loan' | 'other';
   isCritical: boolean;
 }
 
+/**
+ * Built-in obligations plus any loans the driver entered at onboarding.
+ * Loans flow through the exact same pipeline as rent/EMI/utilities from here
+ * on — the resilience buffer's fixed_obligations component, the shortfall
+ * probability's amortised monthly total, the cashflow chart's obligation
+ * markers, and the calendar's "fixed payment due" flags all pick them up
+ * automatically, with no separate code path to keep in sync.
+ */
 export function obligationSpecs(spec: DriverSpec): ObligationSpec[] {
-  return [
+  const builtIn: ObligationSpec[] = [
     { id: 'rent', label: 'Room rent', amount: spec.finances.rent, dayOfMonth: 5, category: 'rent', isCritical: true },
     { id: 'emi', label: 'Two-wheeler EMI', amount: spec.finances.emi, dayOfMonth: 12, category: 'emi', isCritical: true },
     { id: 'utilities', label: 'Phone & electricity', amount: spec.finances.utilities, dayOfMonth: 18, category: 'utilities', isCritical: false },
     { id: 'family', label: 'Family transfer', amount: spec.finances.family, dayOfMonth: 26, category: 'family', isCritical: false },
   ];
+
+  const todayIso = toISO(today());
+  const activeLoans: ObligationSpec[] = CURRENT_LOANS.filter((loan) => !loan.end_date || loan.end_date >= todayIso).map(
+    (loan) => ({
+      id: `loan-${loan.id}`,
+      label: loan.label,
+      amount: loan.emi_amount,
+      dayOfMonth: loan.due_day_of_month,
+      category: 'loan',
+      // A missed loan EMI has real consequences (late fees, credit score,
+      // recovery calls) — same tier as rent/EMI, not optional like utilities.
+      isCritical: true,
+    }),
+  );
+
+  return [...builtIn, ...activeLoans];
 }
 
 /** Expands the recurring obligations into concrete dated instances. */

@@ -69,6 +69,10 @@ that accept it: `/forecast`, `/cashflow`, `/risk`, `/resilience`.
 | GET | `/api/resilience/{driver_id}` | `scenario` | `ResilienceResponse` |
 | GET | `/api/calendar/{driver_id}` | — | `CalendarResponse` |
 | GET | `/api/insights/{driver_id}` | — | `InsightsResponse` |
+| GET | `/api/commitments/{driver_id}` | — | `CommitmentsResponse` |
+| PATCH | `/api/user/{driver_id}` | — | Sets `name`. Body: `{ "name": string }` |
+| PUT | `/api/user/{driver_id}/loans` | — | Replaces the driver's loans. Body: `UserLoanInput[]` |
+| PUT | `/api/user/{driver_id}/goals` | — | Replaces the driver's goals. Body: `UserGoalInput[]` |
 | POST | `/api/stress-test` | — | `StressTestResponse` |
 | POST | `/api/chat` | — | `ChatResponse` |
 
@@ -343,6 +347,79 @@ compared against the *same weekdays* outside the window so a festival landing on
 a Saturday is not credited with the weekend effect. Always send `observations`
 so the UI can show the sample size behind the claim. If there are too few
 observations, send `0` and say so in `note` rather than inventing a number.
+
+### `GET /api/commitments/{driver_id}`
+
+Loans and goals the driver entered at onboarding (step 3 of the frontend's
+`/login`, entirely optional — a driver with none gets `{ "loans": [], "goals":
+[] }`). This is where the early default warning and the goal-progress figures
+live; both are computed against the **same cashflow projection** the
+`/cashflow` endpoint itself uses, so a real backend should share that
+computation rather than re-derive it — the two must never disagree.
+
+```json
+{
+  "driver_id": "DRV-0001",
+  "loans": [
+    {
+      "id": "loan-abc123",
+      "label": "Big personal loan",
+      "emi_amount": 18000,
+      "next_due_date": "2026-10-05",
+      "minimum_to_maintain": 18000,
+      "projected_balance_on_due_date": -15004,
+      "at_risk_of_default": true,
+      "projected_shortfall": 15004,
+      "warning": "Your projected balance on 2026-10-05 is ₹-15,004 after essentials and other obligations — ₹15,004 short of covering the Big personal loan EMI of ₹18,000. Consider saving more before then, or adjusting spending, to avoid missing this payment."
+    }
+  ],
+  "goals": [
+    {
+      "id": "goal-def456",
+      "label": "Emergency top-up",
+      "target_amount": 10000,
+      "target_date": "2026-10-20",
+      "saved_so_far": 1000,
+      "days_remaining": 30,
+      "expected_progress_amount": 0,
+      "progress_gap": 1000,
+      "on_track": true,
+      "required_weekly_saving": 2100,
+      "minimum_extra_to_maintain": 0
+    }
+  ],
+  "total_emi_minimum": 18000,
+  "total_goal_minimum": 0,
+  "any_default_risk": true,
+  "meta": { }
+}
+```
+
+**Where each loan's numbers come from.** `next_due_date` resolves
+`due_day_of_month` forward from today (rolling to next month if that day has
+already passed this month). `minimum_to_maintain` is simply `emi_amount` — the
+literal amount that has to be in hand. `at_risk_of_default` is `true` exactly
+when the projected closing balance on `next_due_date` is negative in the
+cashflow projection that already includes this EMI as an obligation — the
+same signal the Cashflow page's own chart would show as a dip below zero, not
+a separately-estimated number that could disagree with it.
+
+**Where each goal's numbers come from.** `expected_progress_amount` pro-rates
+the target by elapsed time: `target_amount × (days since created ÷ days from
+created to target)`. `progress_gap` is `saved_so_far − expected_progress_amount`;
+negative means behind schedule. `minimum_extra_to_maintain` equals
+`expected_progress_amount` — framed as "hold this much, earmarked, on top of
+your resilience buffer" rather than folded into the buffer itself, since the
+buffer answers "can I survive a bad week" and a savings goal is a different
+question. A driver's very first day with a freshly-created goal will always
+show `expected_progress_amount: 0` and therefore `on_track: true` — that's
+correct, not a bug: zero time has passed, so zero savings is on pace.
+
+Setting loans and goals is a **replace**, not a merge or an append — sending
+`[]` clears them. The frontend's mock engine keeps these as in-memory session
+state rather than persisting them (see the doc comment on `UserLoanInput` in
+`types.ts`); a real backend should persist them against the driver's profile
+via the `PUT` routes in the endpoint table above.
 
 ### `POST /api/stress-test`
 

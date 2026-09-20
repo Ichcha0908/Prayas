@@ -22,7 +22,10 @@ import type {
   ForecastWindow,
   Insight,
   InsightsResponse,
+  CommitmentsResponse,
+  GoalAssessment,
   ISODate,
+  LoanAssessment,
   ResilienceResponse,
   ResponseMeta,
   RiskBand,
@@ -53,6 +56,8 @@ import {
   normalCdf,
   obligationsInRange,
   percentile,
+  getCurrentGoals,
+  getCurrentLoans,
   getRealPetrolPricePerLitre,
   summariseHistory,
   toISO,
@@ -107,7 +112,7 @@ export interface Core {
   anchor: Date;
   points: ForecastPoint[];
   context: ForecastContext;
-  obligations: { id: string; label: string; amount: number; date: ISODate; category: 'rent' | 'emi' | 'utilities' | 'family' | 'other'; isCritical: boolean }[];
+  obligations: { id: string; label: string; amount: number; date: ISODate; category: 'rent' | 'emi' | 'utilities' | 'family' | 'loan' | 'other'; isCritical: boolean }[];
   monthlyObligations: number;
   buffer: BufferResult;
 }
@@ -1273,6 +1278,98 @@ export function getInsights(driverId: string): InsightsResponse {
   });
 
   return { driver_id: driverId, insights, meta: buildMeta(records) };
+}
+
+/* -------------------------------------------------------- GET /commitments */
+
+/** Resolves a day-of-month into the next concrete date after anchor. */
+function nextOccurrence(dayOfMonth: number, anchor: Date): ISODate {
+  const day = clamp(Math.round(dayOfMonth), 1, 28);
+  let candidate = new Date(anchor.getFullYear(), anchor.getMonth(), day);
+  if (candidate <= anchor) {
+    candidate = new Date(anchor.getFullYear(), anchor.getMonth() + 1, day);
+  }
+  return toISO(candidate);
+}
+
+/**
+ * Assesses every loan and goal the driver entered at onboarding against
+ * their actual cashflow projection. This is where "this much has to be
+ * maintained for the EMI" and the early default warning come from — both
+ * are read off the same cashflow projection that already accounts for the
+ * loan itself as an obligation, not a separate estimate that could disagree
+ * with what the cashflow page shows.
+ */
+export function getCommitments(driverId: string): CommitmentsResponse {
+  const core = buildCore(driverId, NEUTRAL_CONTEXT);
+  const loans = getCurrentLoans();
+  const goals = getCurrentGoals();
+  const todayIso = toISO(core.anchor);
+
+  // 35 days comfortably covers every loan's next occurrence, since
+  // due_day_of_month is capped at 28.
+  const projection = buildCashflowDays(core, 35, core.spec.finances.currentSavings);
+  const byDate = new Map(projection.map((d) => [d.date, d]));
+
+  const loanAssessments: LoanAssessment[] = loans
+    .filter((loan) => !loan.end_date || loan.end_date >= todayIso)
+    .map((loan) => {
+      const nextDue = nextOccurrence(loan.due_day_of_month, core.anchor);
+      const day = byDate.get(nextDue);
+      const projectedBalance = day ? day.closing_balance : core.spec.finances.currentSavings;
+      const atRisk = projectedBalance < 0;
+      return {
+        id: loan.id,
+        label: loan.label,
+        emi_amount: loan.emi_amount,
+        next_due_date: nextDue,
+        minimum_to_maintain: loan.emi_amount,
+        projected_balance_on_due_date: projectedBalance,
+        at_risk_of_default: atRisk,
+        projected_shortfall: atRisk ? Math.round(Math.abs(projectedBalance)) : null,
+        warning: atRisk
+          ? `Your projected balance on ${nextDue} is ${inr(projectedBalance)} after essentials and other obligations — ${inr(Math.abs(projectedBalance))} short of covering the ${loan.label} EMI of ${inr(loan.emi_amount)}. Consider saving more before then, or adjusting spending, to avoid missing this payment.`
+          : null,
+      };
+    });
+
+  const goalAssessments: GoalAssessment[] = goals.map((goal) => {
+    const daysRemaining = Math.max(0, daysBetween(todayIso, goal.target_date));
+    const totalDays = Math.max(1, daysBetween(goal.created_date, goal.target_date));
+    const elapsedDays = clamp(daysBetween(goal.created_date, todayIso), 0, totalDays);
+    const expectedProgress = Math.round(goal.target_amount * (elapsedDays / totalDays));
+    const progressGap = goal.saved_so_far - expectedProgress;
+    const remainingAmount = Math.max(0, goal.target_amount - goal.saved_so_far);
+    const requiredWeeklySaving =
+      daysRemaining > 0 ? Math.round(remainingAmount / (daysRemaining / 7)) : remainingAmount;
+
+    return {
+      id: goal.id,
+      label: goal.label,
+      target_amount: goal.target_amount,
+      target_date: goal.target_date,
+      saved_so_far: goal.saved_so_far,
+      days_remaining: daysRemaining,
+      expected_progress_amount: expectedProgress,
+      progress_gap: progressGap,
+      on_track: progressGap >= 0,
+      required_weekly_saving: requiredWeeklySaving,
+      minimum_extra_to_maintain: expectedProgress,
+    };
+  });
+
+  return {
+    driver_id: driverId,
+    loans: loanAssessments,
+    goals: goalAssessments,
+    total_emi_minimum: loanAssessments.reduce((a, l) => a + l.minimum_to_maintain, 0),
+    total_goal_minimum: goalAssessments.reduce((a, g) => a + g.minimum_extra_to_maintain, 0),
+    any_default_risk: loanAssessments.some((l) => l.at_risk_of_default),
+    meta: buildMeta(core.records, {
+      disclaimer:
+        'Loan and goal figures come from the driver-entered amounts in this session, assessed against the same cashflow projection shown elsewhere in the app.',
+    }),
+  };
 }
 
 /* ------------------------------------------------------------ POST /chat */

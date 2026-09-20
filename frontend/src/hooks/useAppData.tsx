@@ -3,6 +3,7 @@ import { api, DEMO_DRIVER_ID, type ScenarioKey } from '@/api';
 import type {
   CalendarResponse,
   CashflowResponse,
+  CommitmentsResponse,
   ForecastResponse,
   InsightsResponse,
   ResilienceResponse,
@@ -11,6 +12,7 @@ import type {
 } from '@/api/types';
 import { useAsync, type AsyncState } from './useAsync';
 import { useLocation } from './useLocation';
+import { useCommitments } from './useCommitments';
 
 /**
  * App-wide data + the scenario overlay.
@@ -33,6 +35,7 @@ interface AppDataValue {
   resilience: AsyncState<ResilienceResponse>;
   calendar: AsyncState<CalendarResponse>;
   insights: AsyncState<InsightsResponse>;
+  commitments: AsyncState<CommitmentsResponse>;
 
   cashflowHorizon: 7 | 14;
   setCashflowHorizon: (h: 7 | 14) => void;
@@ -49,6 +52,8 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
   // (via the sidebar's "Change" control) triggers a full refetch of every
   // endpoint against the newly selected city's weather and fuel price.
   const cityId = selectedCity?.id ?? 'unset';
+  const { loans, goals } = useCommitments();
+  const commitmentsKey = `${loans.length}:${goals.length}:${loans.map((l) => l.id).join(',')}:${goals.map((g) => g.id).join(',')}`;
   const [scenarios, setScenarios] = useState<ScenarioKey[]>([]);
   const [cashflowHorizon, setCashflowHorizon] = useState<7 | 14>(7);
 
@@ -76,6 +81,10 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
   );
   const calendar = useAsync((signal) => api.getCalendar(driverId, { signal }), [driverId, cityId]);
   const insights = useAsync((signal) => api.getInsights(driverId, { signal }), [driverId, cityId]);
+  const commitments = useAsync(
+    (signal) => api.getCommitments(driverId, { signal }),
+    [driverId, cityId, commitmentsKey],
+  );
 
   const value = useMemo<AppDataValue>(
     () => ({
@@ -91,6 +100,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       resilience,
       calendar,
       insights,
+      commitments,
       cashflowHorizon,
       setCashflowHorizon,
     }),
@@ -106,6 +116,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       resilience,
       calendar,
       insights,
+      commitments,
       cashflowHorizon,
     ],
   );

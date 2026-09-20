@@ -65,8 +65,11 @@ Exact figures below vary by which city you pick and today's actual weather —
 both are now real and live, not fixed fixtures — so treat the numbers as
 illustrative of the shape of the demo, not a literal script.
 
-1. **Landing page** → *Try the demo* → pick a city (Delhi NCR, Mumbai, Chennai
-   or Kolkata) on the location screen.
+1. **Landing page** → *Try the demo* → a 3-step entry: your name, your city
+   (Delhi NCR, Mumbai, Chennai or Kolkata), then an optional step for loans
+   and savings goals. Add a loan with a large EMI due soon and you'll see the
+   default warning fire on the very next screen — or skip step 3 entirely,
+   it leaves no trace anywhere in the app.
 2. **Dashboard.** A 7-day income forecast against a "normal" week, with a
    shortfall-risk band. Hit **Why?** — the explanation is a ranked list of
    measured features, not "the AI detected a pattern".
@@ -77,12 +80,16 @@ illustrative of the shape of the demo, not a literal script.
    shock.
 4. **Cashflow.** Day-by-day balance against the buffer line, with the trough
    called out and the days carrying a fixed payment marked.
-5. **Stress Test.** Add a ₹5,000 emergency expense — risk band worsens, ending
+5. **Insights → "Loans, EMIs & goals."** If you added anything in step 1,
+   this is where the detail lives: the exact minimum to hold for each EMI,
+   the same default warning from the Dashboard banner, and each goal's
+   pace — pro-rated by time elapsed, not just "is the money there."
+6. **Stress Test.** Add a ₹5,000 emergency expense — risk band worsens, ending
    balance drops. Add **+2h Saturday** and watch it partially recover.
-6. **Income Calendar.** Diwali shows a measured uplift (not hardcoded) from
+7. **Income Calendar.** Diwali shows a measured uplift (not hardcoded) from
    this driver's own history, typically in the 20-30% range.
-7. **Ask Kamai** (sidebar). Every answer is computed from the data on screen.
-8. **Header → your city name.** Click it to change location — every page
+8. **Ask Kamai** (sidebar). Every answer is computed from the data on screen.
+9. **Header → your city name.** Click it to change location — every page
    refetches against the new city's real weather and fuel price.
 
 ---
@@ -307,6 +314,25 @@ target = max(A + B + C + D + E − F, 5 days of essentials + largest critical bi
 can never drive the target to zero. Every term is shown in the UI with its sign
 and a plain-language explanation — the calculation is not a black box.
 
+**Component D includes any loans entered at onboarding**, not just the
+built-in rent and vehicle EMI. `/login`'s optional third step lets a driver
+add up to three loans (label, EMI, due day, optional end date) and three
+savings goals; loans flow into the exact same `obligationSpecs()` pipeline as
+rent and EMI, so the buffer, the shortfall probability, the Cashflow chart and
+the calendar all pick them up automatically — there's no separate code path
+that could quietly disagree with the rest of the app. A dedicated
+`GET /api/commitments/:id` then assesses each loan against a real cashflow
+projection to answer the two questions a driver actually has: *"how much do I
+need to keep aside for this EMI"* (the literal EMI amount) and *"am I about to
+miss it"* (a plain-language early warning, fired the moment the projected
+balance on that due date goes negative — before the date arrives, not after).
+Savings goals get the same honesty treatment: progress is pro-rated by time
+elapsed, not just compared to the target, and the amount to hold for a goal is
+shown as an explicit addition on top of the resilience buffer above, never
+folded into it — "can I survive a bad week" and "am I on track for this goal"
+are different questions, and blending their numbers would answer neither one
+clearly.
+
 ### Shortfall risk
 
 ```
@@ -399,6 +425,17 @@ synthetic test data"*.
   what actually renders in normal use, does not have this problem.
 - Festival dates are approximate, pan-India rather than city-specific, and
   cover 2025–2027 only.
+- Loans and goals can only be set once, at onboarding. There is no way to
+  edit or remove one afterwards short of clearing `localStorage` and going
+  through `/login` again — a real scope cut, not an oversight, since building
+  a proper "manage your commitments" screen is a separate piece of work from
+  making the numbers those commitments produce actually correct.
+- A goal's pacing is measured from when it was added, not from some earlier
+  real-world date — so a goal you enter today always starts at "on track"
+  regardless of how far off the target date is, since zero time has passed
+  to fall behind in. That's the correct behaviour for the data available, not
+  a bug, but it does mean the "behind pace" state only becomes visible in a
+  session that outlives the goal's own timeline.
 - Relationships (rain, festivals, weekdays) are measured from one synthetic
   driver's history and must not be read as general claims about delivery work.
 - The in-browser engine is a statistical forecaster, not a trained model. It

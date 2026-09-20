@@ -1,6 +1,15 @@
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ArrowRight, CalendarDays, Lightbulb, PiggyBank, Sparkles, TrendingDown, TrendingUp } from 'lucide-react';
+import {
+  AlertTriangle,
+  ArrowRight,
+  CalendarDays,
+  Lightbulb,
+  PiggyBank,
+  Sparkles,
+  TrendingDown,
+  TrendingUp,
+} from 'lucide-react';
 import { useAppData } from '@/hooks/useAppData';
 import {
   Badge,
@@ -26,6 +35,8 @@ export function Dashboard() {
   return (
     <div className="space-y-5">
       <PageIntro name={user.data?.profile.name} scenarioCount={scenarios.length} />
+
+      <DefaultRiskBanner />
 
       {/* ----------------------------------------------------- hero card */}
       {forecast.initialLoading ? (
@@ -120,6 +131,51 @@ function PageIntro({ name, scenarioCount }: { name?: string; scenarioCount: numb
         </Badge>
       ) : null}
     </div>
+  );
+}
+
+/**
+ * The early default warning the loan/EMI onboarding step exists to produce —
+ * surfaced here, not buried on Insights, because "you're about to fall
+ * short" is time-sensitive in a way the rest of the dashboard isn't. Renders
+ * nothing when there are no loans, or none are at risk.
+ */
+function DefaultRiskBanner() {
+  const { commitments } = useAppData();
+  const atRisk = commitments.data?.loans.filter((l) => l.at_risk_of_default) ?? [];
+  if (!atRisk.length) return null;
+
+  return (
+    <motion.div initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
+      <Card className="border-critical/40 bg-critical-soft/40">
+        <div className="flex items-start gap-3">
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-critical/40 bg-critical-soft">
+            <AlertTriangle className="h-4.5 w-4.5 text-critical-ink" aria-hidden />
+          </span>
+          <div className="min-w-0 flex-1">
+            <p className="flex items-center gap-2 text-sm font-600 text-ink">
+              You may fall short on {atRisk.length > 1 ? `${atRisk.length} upcoming EMIs` : 'an upcoming EMI'}
+              <Badge tone="critical">Default risk</Badge>
+            </p>
+            <ul className="mt-2 space-y-1.5">
+              {atRisk.map((loan) => (
+                <li key={loan.id} className="text-xs leading-relaxed text-ink-soft">
+                  <span className="font-600 text-ink">{loan.label}</span> — due {loan.next_due_date}, projected{' '}
+                  <span className="tnum text-critical-ink">{inr(loan.projected_shortfall ?? 0)} short</span>.
+                </li>
+              ))}
+            </ul>
+            <Link
+              to="/app/insights"
+              className="focus-ring mt-2.5 inline-flex items-center gap-1.5 text-xs font-600 text-critical-ink hover:underline"
+            >
+              See what to adjust
+              <ArrowRight className="h-3 w-3" aria-hidden />
+            </Link>
+          </div>
+        </div>
+      </Card>
+    </motion.div>
   );
 }
 

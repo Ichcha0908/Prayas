@@ -1,16 +1,21 @@
 import { motion } from 'framer-motion';
 import {
+  AlertTriangle,
   CalendarHeart,
+  CheckCircle2,
   CloudRain,
+  Landmark,
   Lightbulb,
   PiggyBank,
   ShieldAlert,
+  Target,
   TrendingDown,
   TrendingUp,
   Wallet,
 } from 'lucide-react';
 import { useAppData } from '@/hooks/useAppData';
 import {
+  Badge,
   Card,
   CardHeader,
   CardSkeleton,
@@ -22,9 +27,9 @@ import {
   Stat,
 } from '@/components/ui';
 import { PageHeading } from '@/components/layout/PageHeading';
-import { inr, pctPlain } from '@/lib/format';
+import { inr, longDate, pctPlain } from '@/lib/format';
 import { cn } from '@/lib/cn';
-import type { Insight } from '@/api/types';
+import type { GoalAssessment, Insight, LoanAssessment } from '@/api/types';
 
 const CATEGORY_META: Record<Insight['category'], { Icon: typeof Lightbulb; label: string }> = {
   pattern: { Icon: TrendingUp, label: 'Earning pattern' },
@@ -47,6 +52,9 @@ export function Insights() {
 
       {/* --------------------------------------------- buffer breakdown */}
       <BufferBreakdown />
+
+      {/* ----------------------------------------------- loans & goals */}
+      <CommitmentsCard />
 
       {/* ------------------------------------------------- the insights */}
       {insights.initialLoading ? (
@@ -292,6 +300,172 @@ function BufferBreakdown() {
         </div>
       </div>
     </Card>
+  );
+}
+
+/**
+ * Loans and goals entered at onboarding (step 3, optional) — renders nothing
+ * if none were added, so skipping that step leaves no dead UI here. Every
+ * figure below is read straight off GET /api/commitments, which assesses
+ * each loan and goal against the same cashflow projection the Cashflow page
+ * itself uses, so this can never quietly disagree with what's shown there.
+ */
+function CommitmentsCard() {
+  const { commitments } = useAppData();
+  const data = commitments.data;
+
+  if (commitments.initialLoading) return <CardSkeleton lines={4} />;
+  if (commitments.error) return null; // non-critical section — fail quietly rather than block the page
+  if (!data || (!data.loans.length && !data.goals.length)) return null;
+
+  return (
+    <Card>
+      <CardHeader
+        eyebrow="Loans, EMIs & goals"
+        title="What you told us to plan around"
+        description="Minimums here are read from your actual cashflow projection, not a separate estimate — they'll always agree with what the Cashflow page shows."
+        action={data.any_default_risk ? <Badge tone="critical">Default risk</Badge> : null}
+      />
+
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        {data.loans.length ? (
+          <div>
+            <p className="mb-3 flex items-center gap-1.5 text-xs font-600 uppercase tracking-[0.06em] text-ink-muted">
+              <Landmark className="h-3.5 w-3.5" aria-hidden />
+              Loans &amp; EMIs
+            </p>
+            <ul className="space-y-3">
+              {data.loans.map((loan) => (
+                <LoanRow key={loan.id} loan={loan} />
+              ))}
+            </ul>
+          </div>
+        ) : null}
+
+        {data.goals.length ? (
+          <div>
+            <p className="mb-3 flex items-center gap-1.5 text-xs font-600 uppercase tracking-[0.06em] text-ink-muted">
+              <Target className="h-3.5 w-3.5" aria-hidden />
+              Savings goals
+            </p>
+            <ul className="space-y-3">
+              {data.goals.map((goal) => (
+                <GoalRow key={goal.id} goal={goal} />
+              ))}
+            </ul>
+          </div>
+        ) : null}
+      </div>
+
+      {data.total_goal_minimum > 0 ? (
+        <p className="mt-5 rounded-xl border border-canvas-line bg-canvas-raised p-3 text-xs leading-relaxed text-ink-muted">
+          <span className="font-600 text-ink-soft">{inr(data.total_goal_minimum)}</span> is what your goals ask you
+          to hold right now, on top of — never instead of — your{' '}
+          <span className="font-600 text-ink-soft">resilience buffer</span> above, which already accounts for every
+          EMI's minimum.
+        </p>
+      ) : null}
+    </Card>
+  );
+}
+
+function LoanRow({ loan }: { loan: LoanAssessment }) {
+  return (
+    <li
+      className={cn(
+        'rounded-xl border p-3.5',
+        loan.at_risk_of_default ? 'border-critical/40 bg-critical-soft/30' : 'border-canvas-line bg-canvas-raised',
+      )}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-sm font-600 text-ink">{loan.label}</p>
+          <p className="mt-0.5 text-[11px] text-ink-muted">Next due {longDate(loan.next_due_date)}</p>
+        </div>
+        {loan.at_risk_of_default ? (
+          <span className="flex shrink-0 items-center gap-1 rounded-full bg-critical-soft px-2 py-0.5 text-2xs font-600 text-critical-ink">
+            <AlertTriangle className="h-3 w-3" aria-hidden />
+            At risk
+          </span>
+        ) : (
+          <span className="flex shrink-0 items-center gap-1 rounded-full bg-good-soft px-2 py-0.5 text-2xs font-600 text-good-ink">
+            <CheckCircle2 className="h-3 w-3" aria-hidden />
+            On track
+          </span>
+        )}
+      </div>
+
+      <div className="mt-3 grid grid-cols-2 gap-3 border-t border-canvas-line pt-3 text-xs">
+        <div>
+          <p className="text-ink-faint">Minimum to maintain</p>
+          <p className="tnum mt-0.5 font-600 text-ink">{inr(loan.minimum_to_maintain)}</p>
+        </div>
+        <div>
+          <p className="text-ink-faint">Projected balance that day</p>
+          <p className={cn('tnum mt-0.5 font-600', loan.at_risk_of_default ? 'text-critical-ink' : 'text-ink')}>
+            {inr(loan.projected_balance_on_due_date)}
+          </p>
+        </div>
+      </div>
+
+      {loan.warning ? <p className="mt-2.5 text-[11px] leading-relaxed text-critical-ink">{loan.warning}</p> : null}
+    </li>
+  );
+}
+
+function GoalRow({ goal }: { goal: GoalAssessment }) {
+  const progressPct = goal.target_amount > 0 ? Math.min(1, goal.saved_so_far / goal.target_amount) : 0;
+  const expectedPct = goal.target_amount > 0 ? Math.min(1, goal.expected_progress_amount / goal.target_amount) : 0;
+
+  return (
+    <li className="rounded-xl border border-canvas-line bg-canvas-raised p-3.5">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-sm font-600 text-ink">{goal.label}</p>
+          <p className="mt-0.5 text-[11px] text-ink-muted">
+            {inr(goal.target_amount)} by {longDate(goal.target_date)}
+          </p>
+        </div>
+        <span
+          className={cn(
+            'flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-2xs font-600',
+            goal.on_track ? 'bg-good-soft text-good-ink' : 'bg-warn-soft text-warn-ink',
+          )}
+        >
+          {goal.on_track ? <CheckCircle2 className="h-3 w-3" aria-hidden /> : <AlertTriangle className="h-3 w-3" aria-hidden />}
+          {goal.on_track ? 'On pace' : 'Behind pace'}
+        </span>
+      </div>
+
+      <div className="relative mt-3 h-2 w-full overflow-hidden rounded-full bg-canvas-hover">
+        <div
+          className="absolute inset-y-0 w-0.5 bg-ink-faint"
+          style={{ left: `${expectedPct * 100}%` }}
+          title="Expected progress by today"
+        />
+        <motion.div
+          className={cn('h-full rounded-full', goal.on_track ? 'bg-good' : 'bg-warn')}
+          initial={{ width: 0 }}
+          animate={{ width: `${progressPct * 100}%` }}
+          transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+        />
+      </div>
+      <div className="mt-1.5 flex items-center justify-between text-[11px] text-ink-faint">
+        <span className="tnum">{inr(goal.saved_so_far)} saved</span>
+        <span className="tnum">{goal.days_remaining}d left</span>
+      </div>
+
+      <div className="mt-3 grid grid-cols-2 gap-3 border-t border-canvas-line pt-3 text-xs">
+        <div>
+          <p className="text-ink-faint">Keep saving</p>
+          <p className="tnum mt-0.5 font-600 text-ink">{inr(goal.required_weekly_saving)}/wk</p>
+        </div>
+        <div>
+          <p className="text-ink-faint">Hold extra, beyond EMIs</p>
+          <p className="tnum mt-0.5 font-600 text-ink">{inr(goal.minimum_extra_to_maintain)}</p>
+        </div>
+      </div>
+    </li>
   );
 }
 
